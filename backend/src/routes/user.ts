@@ -8,6 +8,9 @@ export const userRouter = new Hono<{
     Bindings: {
         DATABASE_URL: string
         JWT_SECRET: string
+    }, Variables:{
+        userId: string
+        role: string
     }
 }>();
 
@@ -162,9 +165,7 @@ userRouter.use("/*", async (c, next) => {
     try {
         const decode = await verify(token, c.env.JWT_SECRET);
         if (decode) {
-            // @ts-ignore
             c.set('userId', String(decode.id));
-            // @ts-ignore
             c.set("role", String(decode.role));
             await next();
         } else {
@@ -186,11 +187,10 @@ userRouter.get("/profile", async (c) => {
         datasourceUrl: c.env.DATABASE_URL,
     }).$extends(withAccelerate());
 
-    // @ts-ignore
     const userId = c.get("userId");
 
     try {
-        // @ts-ignore
+
         const user = await prisma.user.findUnique({ where: { id: userId } });
         if (!user) {
             c.status(404);
@@ -234,7 +234,6 @@ userRouter.put("/update", async (c) => {
 
     try {
         const updatedUser = await prisma.user.update({
-            // @ts-ignore
             where: { id: userId },
             data: body,
         });
@@ -246,3 +245,38 @@ userRouter.put("/update", async (c) => {
         return c.json({ message: "Internal Server Error" });
     }
 })
+
+userRouter.post("/predictDisease", async(c) => {
+// flask 
+})
+
+userRouter.post("telemedice", async(c) => {
+// twilio
+// zegocloud
+})
+// userRouter.post("/slotDetails", async(c) => {
+//     const prisma = new PrismaClient({
+//         datasourceUrl: c.env.DATABASE_URL,
+//     }).$extends(withAccelerate());
+//     const body = await c.req.json();
+//     const doctorId = body.doctorId;
+//     const date = body.date;
+//     try {
+//         const slots = await prisma.slot.findMany({
+//             where: {
+//                 doctorId: doctorId,
+//                 date: date
+//             }
+//         });
+//         c.status(200);
+//         return c.json({
+//             message: "Slots found successfully",
+//             slots
+//         });
+//     } catch (e) {
+//         console.error(e);
+//         c.status(500);
+//         return c.json({ message: "Internal Server Error" });
+//     }
+// })
+

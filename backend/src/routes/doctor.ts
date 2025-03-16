@@ -8,6 +8,9 @@ export const doctorRouter = new Hono<{
     Bindings:{
         DATABASE_URL: string
         JWT_SECRET: string
+    }, Variables: {
+        doctorId: string
+        role: string
     }
 }>();
 
@@ -150,9 +153,7 @@ doctorRouter.use("/*", async(c, next) => {
         try {
             const decode = await verify(token, c.env.JWT_SECRET);
             if (decode) {
-                // @ts-ignore
                 c.set('doctorId', String(decode.id));
-                // @ts-ignore
                 c.set("role", String(decode.role));
                 await next();
             } else {
