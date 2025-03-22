@@ -94,7 +94,7 @@ export default function Login() {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Signing in...' : 'Sign In'}
             </Button>
-            <p className="text-sm text-muted-foreground text-center">
+            {/* <p className="text-sm text-muted-foreground text-center">
               Demo accounts:
               <br />
               admin@example.com / admin123
@@ -102,7 +102,7 @@ export default function Login() {
               doctor@example.com / doctor123
               <br />
               user@example.com / user123
-            </p>
+            </p> */}
           </CardFooter>
         </form>
       </Card>
