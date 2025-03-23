@@ -43,7 +43,7 @@ model Doctor {
   password        String
   specialization  String
   role            Role                  @default(DOCTOR)
-  availability    DoctorAvailability?   
+  availability    DoctorAvailability[]  // Changed from single to multiple entries
   appointments    Appointment[]         
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
@@ -52,13 +52,14 @@ model Doctor {
 model DoctorAvailability {
   id        String    @id @default(cuid())
   doctor    Doctor    @relation(fields: [doctorId], references: [id])
-  doctorId  String    @unique
-  date      DateTime  @default(now())
+  doctorId  String    
+  date      DateTime  
   slots     Json      
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-}
 
+  @@index([doctorId, date]) // Ensures fast queries but does NOT enforce uniqueness
+}
 
 model Appointment {
   id          String            @id @default(cuid())
