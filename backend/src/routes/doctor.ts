@@ -45,6 +45,13 @@ export const availabilitySchema = z.object({
     ).nonempty({ message: "At least one slot must be specified." })
 });
 
+const appointmentUpdateSchema = z.object({
+    appointmentId: z.string().min(1, "Appointment ID is required."),
+    stat: z.enum(["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"], {
+        errorMap: () => ({ message: "Invalid status. Use 'PENDING', 'CONFIRMED', 'COMPLETED', or 'CANCELLED'." })
+    })
+});
+
 doctorRouter.post("/signup", async(c) => {
     const prisma  = new PrismaClient({
         datasourceUrl: c.env.DATABASE_URL
@@ -253,7 +260,6 @@ doctorRouter.post("/availability", async (c) => {
 
         console.log("✅ Doctor exists, proceeding to check availability...");
 
-        // Fetch existing booked appointments for this doctor on the given date
         console.log("🔍 Fetching booked appointments...");
         const bookedAppointments = await prisma.appointment.findMany({
             where: { doctorId, date: inputDate },
@@ -263,24 +269,20 @@ doctorRouter.post("/availability", async (c) => {
         const bookedSlots = bookedAppointments.map(app => app.slot);
         console.log("⛔ Booked slots:", bookedSlots);
 
-        // Fetch existing availability
         const existingAvailability = await prisma.doctorAvailability.findUnique({
             where: { doctorId_date: { doctorId, date: inputDate } }
         }) as any;
 
         console.log("🟢 Existing availability:", existingAvailability);
 
-        // Merge new slots while ensuring no duplication
         let mergedSlots = existingAvailability ? [...existingAvailability.slots, ...body.slots] : body.slots;
 
         console.log("🔄 Merging slots...", mergedSlots);
 
-        // **Remove slots that are already booked**
         mergedSlots = mergedSlots.filter((slot : any) => !bookedSlots.includes(slot.start));
 
         console.log("✅ Filtered available slots (removed booked ones):", mergedSlots);
 
-        // **Sort and check for overlapping slots**
         mergedSlots.sort((a: any, b: any) => a.start.localeCompare(b.start));
 
         for (let i = 0; i < mergedSlots.length - 1; i++) {
@@ -296,7 +298,6 @@ doctorRouter.post("/availability", async (c) => {
 
         console.log("✅ No overlapping slots detected, proceeding...");
 
-        // **Update or create availability**
         let availability;
         if (existingAvailability) {
             console.log("🔄 Updating existing availability...");
@@ -456,8 +457,62 @@ doctorRouter.get("/appointments", async (c) => {
     try {
         const appointments = await prisma.appointment.findMany({ where: { doctorId } });
         c.status(200);
-        return c.json({ message: "Appointments retrieved successfully", appointments });
+        return c.json ({
+            message: "Appointments retrieved succesfully",
+            appointment: appointments.map((appointment) => ({
+                id: appointment.id,
+                stat: appointment.status,
+            }))
+        })
     } catch (e) {
+        c.status(500);
+        return c.json({ message: "Internal Server Error" });
+    }
+});
+
+doctorRouter.patch("/appointments/update-status", async (c) => {
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env.DATABASE_URL
+    }).$extends(withAccelerate());
+
+    const doctorId = c.get("doctorId");
+
+    const body = await c.req.json();
+    const validation = appointmentUpdateSchema.safeParse(body);
+
+    if (!validation.success) {
+        c.status(400);
+        return c.json({ message: validation.error.errors.map(e => e.message) });
+    }
+
+    const { appointmentId, stat } = body;
+
+    try {
+        const appointment = await prisma.appointment.findUnique({
+            where: { id: appointmentId }
+        });
+
+        if (!appointment) {
+            c.status(404);
+            return c.json({ message: "Appointment not found." });
+        }
+
+        if (appointment.doctorId !== doctorId) {
+            c.status(403);
+            return c.json({ message: "Unauthorized: You can only update your own appointments." });
+        }
+
+        const updatedAppointment = await prisma.appointment.update({
+            where: { id: appointmentId },
+            data: {
+                status: stat
+            }
+        });
+
+        c.status(200);
+        return c.json({ message: "Appointment status updated successfully.", appointment: updatedAppointment });
+    } catch (error) {
+        console.error("❌ Error updating appointment status:", error);
         c.status(500);
         return c.json({ message: "Internal Server Error" });
     }
