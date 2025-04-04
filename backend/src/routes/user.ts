@@ -46,6 +46,16 @@ const updateSchema = z.object({
     gender: z.enum(["male", "female", "other"]).optional(),
 });
 
+const specializationSchema = z.object({
+    specialization: z.string()
+});
+
+const appointmentSchema = z.object({
+    doctorId: z.string(),
+    slot: z.string(),
+    date: z.string()
+});
+
 userRouter.post("/signup", async (c) => {
     const prisma = new PrismaClient({
         datasourceUrl: c.env.DATABASE_URL
@@ -148,8 +158,6 @@ userRouter.post("/signin", async (c) => {
             message: "Error while signing in. Internal Server Error"
         })
     }
-
-    
 })
 
 userRouter.use("/*", async (c, next) => {
@@ -246,11 +254,159 @@ userRouter.put("/update", async (c) => {
     }
 })
 
+
+userRouter.get("/getDoctorsBySpecialization", async (c) => {
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env.DATABASE_URL,
+    }).$extends(withAccelerate());
+
+    const body = await c.req.json();
+    const correctSpecializationBody = specializationSchema.safeParse(body);
+    
+    if (!correctSpecializationBody.success) {
+        const errorMessage = correctSpecializationBody.error.errors.map((error) => error.message);
+        c.status(400);
+        return c.json({ message: errorMessage });
+    }
+
+    try {
+        const doctors = await prisma.doctor.findMany({
+            where: { specialization: body.specialization },
+            select: { id: true, name: true }
+        });
+        
+        c.status(200);
+        return c.json({ doctors });
+    } catch (e) {
+        console.error(e);
+        c.status(500);
+        return c.json({ message: "Internal Server Error" });
+    }
+});
+
+userRouter.get("/getDoctorSlots", async (c) => {
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env.DATABASE_URL,
+    }).$extends(withAccelerate());
+    
+    const doctorId = c.req.query("doctorId");
+    const date = c.req.query("date");
+    console.log(doctorId)
+    console.log(date)
+    if (!doctorId || !date) {
+        c.status(400);
+        return c.json({ message: "doctorId and date are required" });
+    }
+    
+    try {
+        const doctorAvailability = await prisma.doctorAvailability.findFirst({
+            where: { doctorId, date: new Date(date) }
+        });
+        
+        if (!doctorAvailability) {
+            c.status(404);
+            return c.json({ message: "No available slots for this doctor on the given date" });
+        }
+        
+        c.status(200);
+        return c.json({ slots: doctorAvailability.slots });
+    } catch (e) {
+        console.error(e);
+        c.status(500);
+        return c.json({ message: "Internal Server Error" });
+    }
+});
+
+userRouter.post("/bookAppointment", async (c) => {
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env.DATABASE_URL,
+    }).$extends(withAccelerate());
+
+    const userId = c.get("userId");
+    const body = await c.req.json();
+    const correctAppointmentBody = appointmentSchema.safeParse(body);
+
+    if (!correctAppointmentBody.success) {
+        const errorMessage = correctAppointmentBody.error.errors.map((error) => error.message);
+        c.status(400);
+        return c.json({ message: errorMessage });
+    }
+
+    try {
+        const doctorAvailability = await prisma.doctorAvailability.findFirst({
+            where: { doctorId: body.doctorId, date: new Date(body.date) }
+        });
+
+        console.log("Doctor Availability:", doctorAvailability);
+        console.log("User Input Slot:", body.slot);
+
+        if (!doctorAvailability || !Array.isArray(doctorAvailability.slots)) {
+            c.status(400);
+            return c.json({ message: "No available slots for this doctor on the selected date" });
+        }
+
+        const selectedSlot = body.slot.replace(/\s?(AM|PM)/, "");  
+
+        const slotExists = doctorAvailability.slots.some(slot => 
+            typeof slot === 'object' && slot !== null && 'start' in slot && slot.start === selectedSlot
+        );
+
+        if (!slotExists) {
+            c.status(400);
+            return c.json({ message: "Selected slot is not available" });
+        }
+
+        const appointment = await prisma.appointment.create({
+            data: {
+                userId,
+                doctorId: body.doctorId,
+                slot: selectedSlot,
+                date: new Date(body.date),
+                status: "PENDING",
+                meetingId: null
+            }
+        });
+
+        c.status(200);
+        return c.json({ message: "Appointment booked successfully", appointment });
+
+    } catch (e) {
+        console.error(e);
+        c.status(500);
+        return c.json({ message: "Internal Server Error" });
+    }
+});
+userRouter.get("/getAppointments", async (c) => {
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env.DATABASE_URL,
+    }).$extends(withAccelerate());
+    
+    const userId = c.get("userId");
+    
+    try {
+        const appointments = await prisma.appointment.findMany({
+            where: { userId },
+            include: {
+                doctor: {
+                    select: { name: true, specialization: true }
+                }
+            }
+        });
+        
+        c.status(200);
+        return c.json({ appointments });
+    } catch (e) {
+        console.error(e);
+        c.status(500);
+        return c.json({ message: "Internal Server Error" });
+    }
+});
 userRouter.post("/predictDisease", async(c) => {
 // flask 
+    
 })
 
-userRouter.post("telemedice", async(c) => {
+userRouter.post("/telemedice", async(c) => {
 // twilio
 // zegocloud
 })
