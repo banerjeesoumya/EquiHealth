@@ -3,11 +3,16 @@ import z from "zod";
 import { PrismaClient } from "@prisma/client/edge";
 import { withAccelerate } from "@prisma/extension-accelerate";
 import { sign, verify, decode } from "hono/jwt";
+import axios from "axios";
+import OpenAI from "openai";
 
 export const userRouter = new Hono<{
     Bindings: {
         DATABASE_URL: string
         JWT_SECRET: string
+        FLASK_SERVICE: string
+        OPENROUTER_API_KEY: string
+        OPENROUTER_BASE_URL: string
     }, Variables:{
         userId: string
         role: string
@@ -56,6 +61,13 @@ const appointmentSchema = z.object({
     date: z.string()
 });
 
+const predictionSchema = z.object({
+    symptoms: z.array(z.string()).min(1, "At least one symptom must be provided")
+});
+
+const chatSupportSchema =z.object({
+    message: z.string().min(1, "Message cannot be empty"),
+})
 userRouter.post("/signup", async (c) => {
     const prisma = new PrismaClient({
         datasourceUrl: c.env.DATABASE_URL
@@ -401,38 +413,108 @@ userRouter.get("/getAppointments", async (c) => {
         return c.json({ message: "Internal Server Error" });
     }
 });
-userRouter.post("/predictDisease", async(c) => {
-// flask 
+
+userRouter.post("/predictDisease", async (c) => {
+    const body = await c.req.json();
+    const validation = predictionSchema.safeParse(body);
+  
+    if (!validation.success) {
+      const errors = validation.error.errors.map(e => e.message);
+      c.status(400);
+      return c.json({ message: errors });
+    }
+  
+    try {
+      const response = await axios.post(
+        c.env.FLASK_SERVICE,
+        {
+          symptoms: body.symptoms
+        },
+        {
+          headers: { "Content-Type": "application/json" }
+        }
+      );
+      console.log(response);
+      const prediction = response.data.predicted_diseases;
+  
+      return c.json({
+        message: "Prediction successful",
+        prediction
+      });
+    } catch (error: any) {
+      console.error("Prediction Error:", error.message || error);
+      c.status(500);
+      return c.json({
+        message: "Error during prediction",
+        error: error.response?.data || error.message
+      });
+    }
+  });
+
+userRouter.post("/chat-support", async (c) => {
+    const openai = new OpenAI({
+        apiKey: c.env.OPENROUTER_API_KEY,
+        baseURL: c.env.OPENROUTER_BASE_URL
+    })
+    const body = await c.req.json();
+    console.log(body)
+    const validation = chatSupportSchema.safeParse(body);
+     if (!validation.success) {
+        const errors = validation.error.errors.map(e => e.message);
+        c.status(400);
+        return c.json({ 
+            message: errors 
+        });
+    }
+    try {
+        const reply = await getReply(body.message);
+        c.status(200);
+        return c.json({
+            message: "AI response received",
+            reply: reply
+        })
+    } catch (error : any) {
+        console.error("Error:", error);
+        c.status(500);
+        return c.json({
+            message: "Error while getting AI response",
+            error: error.message
+        })
+    }
+    async function getReply(message: string) {
+        try {
+            const response = await openai.chat.completions.create({
+                model: "google/gemini-2.0-flash-thinking-exp:free",
+                messages: [
+                    {
+                        role: "system",
+                        content: `You are an AI-powered healthcare assistant for the platform "Equihealth". Your role is to assist users with general health-related queries in a friendly and informative manner.
     
-})
-
-userRouter.post("/telemedice", async(c) => {
-// twilio
-// zegocloud
-})
-// userRouter.post("/slotDetails", async(c) => {
-//     const prisma = new PrismaClient({
-//         datasourceUrl: c.env.DATABASE_URL,
-//     }).$extends(withAccelerate());
-//     const body = await c.req.json();
-//     const doctorId = body.doctorId;
-//     const date = body.date;
-//     try {
-//         const slots = await prisma.slot.findMany({
-//             where: {
-//                 doctorId: doctorId,
-//                 date: date
-//             }
-//         });
-//         c.status(200);
-//         return c.json({
-//             message: "Slots found successfully",
-//             slots
-//         });
-//     } catch (e) {
-//         console.error(e);
-//         c.status(500);
-//         return c.json({ message: "Internal Server Error" });
-//     }
-// })
-
+                        Guidelines to follow:
+                        - Begin by greeting the user and briefly introducing Equihealth.
+                        - Mention core features available to users:
+                        • Symptom-based disease prediction tool
+                        • Appointment booking system with certified doctors
+                        • Chat support for general health queries
+                        • Access to AI-generated health tips
+                        - Never diagnose diseases directly.
+                        - If the user describes symptoms, suggest using the Disease Prediction feature for better assessment.
+                        - Always recommend consulting a doctor when the issue seems serious or uncertain.
+                        - Keep your responses concise, clear, and user-friendly.
+                        - Use a tone that is empathetic and respectful to all users.`
+                    },
+                    {
+                        role: "user",
+                        content: message
+                    }
+                ]
+            });
+            return response.choices[0].message.content;
+        } catch (err) {
+            console.error("Error:", err);
+            throw new Error("AI Service Failed");
+        }
+    }
+})  
+  
+  
