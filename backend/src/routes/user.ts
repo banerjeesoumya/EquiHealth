@@ -3,11 +3,13 @@ import z from "zod";
 import { PrismaClient } from "@prisma/client/edge";
 import { withAccelerate } from "@prisma/extension-accelerate";
 import { sign, verify, decode } from "hono/jwt";
+import axios from "axios";
 
 export const userRouter = new Hono<{
     Bindings: {
         DATABASE_URL: string
         JWT_SECRET: string
+        FLASK_SERVICE: string
     }, Variables:{
         userId: string
         role: string
@@ -54,6 +56,10 @@ const appointmentSchema = z.object({
     doctorId: z.string(),
     slot: z.string(),
     date: z.string()
+});
+
+const predictionSchema = z.object({
+    symptoms: z.array(z.string()).min(1, "At least one symptom must be provided")
 });
 
 userRouter.post("/signup", async (c) => {
@@ -401,38 +407,42 @@ userRouter.get("/getAppointments", async (c) => {
         return c.json({ message: "Internal Server Error" });
     }
 });
-userRouter.post("/predictDisease", async(c) => {
-// flask 
-    
-})
 
-userRouter.post("/telemedice", async(c) => {
-// twilio
-// zegocloud
-})
-// userRouter.post("/slotDetails", async(c) => {
-//     const prisma = new PrismaClient({
-//         datasourceUrl: c.env.DATABASE_URL,
-//     }).$extends(withAccelerate());
-//     const body = await c.req.json();
-//     const doctorId = body.doctorId;
-//     const date = body.date;
-//     try {
-//         const slots = await prisma.slot.findMany({
-//             where: {
-//                 doctorId: doctorId,
-//                 date: date
-//             }
-//         });
-//         c.status(200);
-//         return c.json({
-//             message: "Slots found successfully",
-//             slots
-//         });
-//     } catch (e) {
-//         console.error(e);
-//         c.status(500);
-//         return c.json({ message: "Internal Server Error" });
-//     }
-// })
-
+userRouter.post("/predictDisease", async (c) => {
+    const body = await c.req.json();
+    const validation = predictionSchema.safeParse(body);
+  
+    if (!validation.success) {
+      const errors = validation.error.errors.map(e => e.message);
+      c.status(400);
+      return c.json({ message: errors });
+    }
+  
+    try {
+      const response = await axios.post(
+        c.env.FLASK_SERVICE,
+        {
+          symptoms: body.symptoms
+        },
+        {
+          headers: { "Content-Type": "application/json" }
+        }
+      );
+      console.log(response);
+      const prediction = response.data.predicted_diseases;
+  
+      return c.json({
+        message: "Prediction successful",
+        prediction
+      });
+    } catch (error: any) {
+      console.error("Prediction Error:", error.message || error);
+      c.status(500);
+      return c.json({
+        message: "Error during prediction",
+        error: error.response?.data || error.message
+      });
+    }
+  });
+  
+  
