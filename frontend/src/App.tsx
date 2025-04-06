@@ -13,7 +13,7 @@ import Landing from './pages/Landing';
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="system" storageKey="misfits-theme">
+    <ThemeProvider defaultTheme="system" storageKey="EquiHealth-theme">
       <AuthProvider>
         <Router>
           <Layout>

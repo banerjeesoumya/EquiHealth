@@ -142,7 +142,7 @@ export default function Landing() {
             variants={fadeIn}
             className="text-3xl md:text-4xl font-bold text-center mb-12"
           >
-            Why Choose MisFITs?
+            Why Choose EquiHealth?
           </motion.h2>
           <motion.div
             variants={staggerContainer}
@@ -296,7 +296,7 @@ export default function Landing() {
             variants={fadeIn}
             className="text-xl text-muted-foreground mb-8"
           >
-            Join thousands of users who trust MisFITs for their healthcare needs.
+            Join thousands of users who trust EquiHealth for their healthcare needs.
           </motion.p>
           <motion.div variants={fadeIn}>
             <Link to="/register">
@@ -527,19 +527,19 @@ const testimonials = [
     name: "Sarah Johnson",
     role: "Patient",
     avatar: avatars[0],
-    quote: "MisFITs has revolutionized how I manage my health. The ability to track my progress and connect with doctors instantly is incredible."
+    quote: "EquiHealth has revolutionized how I manage my health. The ability to track my progress and connect with doctors instantly is incredible."
   },
   {
     name: "Dr. Michael Chen",
     role: "Cardiologist",
     avatar: avatars[1],
-    quote: "As a healthcare provider, MisFITs helps me deliver better care to my patients with its comprehensive health tracking features."
+    quote: "As a healthcare provider, EquiHealth helps me deliver better care to my patients with its comprehensive health tracking features."
   },
   {
     name: "Emma Davis",
     role: "Fitness Trainer",
     avatar: avatars[2],
-    quote: "I recommend MisFITs to all my clients. It's the perfect platform for monitoring health metrics and staying connected with healthcare providers."
+    quote: "I recommend EquiHealth to all my clients. It's the perfect platform for monitoring health metrics and staying connected with healthcare providers."
   }
 ];
 
