@@ -2,7 +2,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 interface ProtectedRouteProps {
-  role: 'user' | 'doctor' | 'admin';
+  role: 'patient' | 'doctor' | 'admin';
 }
 
 export default function ProtectedRoute({ role }: ProtectedRouteProps) {
@@ -17,14 +17,17 @@ export default function ProtectedRoute({ role }: ProtectedRouteProps) {
   }
 
   if (user.role !== role) {
-    // Redirect to appropriate dashboard based on user's role
+    // Redirect to appropriate dashboard based on user's actual role
     switch (user.role) {
       case 'admin':
         return <Navigate to="/admin/dashboard" replace />;
       case 'doctor':
         return <Navigate to="/doctor/dashboard" replace />;
-      default:
+      case 'patient':
         return <Navigate to="/dashboard" replace />;
+      default:
+        // Fallback if role is unexpected (shouldn't happen)
+        return <Navigate to="/login" replace />;
     }
   }
 

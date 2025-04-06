@@ -1,16 +1,25 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import axios from 'axios';
+// Import mock data
+import { patients, doctors, admins } from '../mockData';
 
 interface User {
-  id: string;
+  id: string | number;
   email: string;
   name: string;
-  role: 'user' | 'doctor' | 'admin';
+  role: 'patient' | 'doctor' | 'admin' | 'user';
   specialization?: string; // For doctors
-  age?: number; // For users
-  height?: number; // For users
-  weight?: number; // For users
-  gender?: 'male' | 'female' | 'other'; // For users
+  age?: number; // For patients
+  height?: number; // For patients
+  weight?: number; // For patients
+  gender?: string; // For patients
+  medicalHistory?: string[];
+  lastVisit?: string;
+  nextAppointment?: string;
+  bmi?: number;
+  experience?: number; // For doctors
+  availableSlots?: Record<string, string[]>; // For doctors
+  department?: string; // For admins
+  joinDate?: string; // For admins
   createdAt?: string;
   updatedAt?: string;
 }
@@ -27,7 +36,7 @@ interface AuthContextType {
     age?: number;
     height?: number;
     weight?: number;
-    gender?: 'male' | 'female' | 'other';
+    gender?: string;
   }) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
@@ -35,88 +44,87 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Create an axios instance with base URL
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8787/api/v1',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Add token to requests if it exists
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check if user is logged in on mount
-    const token = localStorage.getItem('token');
+    const userJson = localStorage.getItem('user');
     const role = localStorage.getItem('userRole');
-    if (token && role) {
-      api.get(`/${role}/profile`)
-        .then(response => {
-          let userData;
-          if (role === 'user') {
-            userData = response.data.user;
-          } else if (role === 'doctor') {
-            userData = response.data.doctor;
-          } else {
-            userData = response.data.admin;
-          }
-          setUser({
-            ...userData,
-            role: role as User['role']
-          });
-        })
-        .catch(() => {
-          localStorage.removeItem('token');
-          localStorage.removeItem('userRole');
-        })
-        .finally(() => {
-          setIsLoading(false);
+    if (userJson && role) {
+      try {
+        const userData = JSON.parse(userJson);
+        setUser({
+          ...userData,
+          role: role as User['role']
         });
-    } else {
-      setIsLoading(false);
+      } catch (error) {
+        localStorage.removeItem('user');
+        localStorage.removeItem('userRole');
+      }
     }
+    setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string, role: User['role']) => {
-    const response = await api.post(`/${role}/signin`, { email, password });
-    const { token, message } = response.data;
+    // Mock authentication logic using our mock data
+    let userData = null;
     
-    if (!token) {
-      throw new Error(message || 'Failed to login');
+    // Convert 'user' role to 'patient' for consistency with our data model
+    const dataRole = role === 'user' ? 'patient' : role;
+    
+    if (dataRole === 'patient') {
+      userData = patients.find(
+        patient => patient.email === email && patient.password === password
+      );
+    } else if (dataRole === 'doctor') {
+      const foundDoctor = doctors.find(
+        doctor => doctor.email === email && doctor.password === password
+      );
+      
+      if (foundDoctor) {
+        // Create a clean copy of the doctor object that matches our User interface
+        // Handle availableSlots specifically to ensure it's a proper Record
+        const slots: Record<string, string[]> = {};
+        if (foundDoctor.availableSlots) {
+          Object.entries(foundDoctor.availableSlots).forEach(([date, timeSlots]) => {
+            if (Array.isArray(timeSlots)) {
+              slots[date] = timeSlots;
+            }
+          });
+        }
+
+        userData = {
+          id: foundDoctor.id,
+          name: foundDoctor.name,
+          email: foundDoctor.email,
+          password: foundDoctor.password,
+          specialization: foundDoctor.specialization,
+          experience: foundDoctor.experience,
+          availableSlots: slots,
+          role: 'doctor'
+        };
+      }
+    } else if (dataRole === 'admin') {
+      userData = admins.find(
+        admin => admin.email === email && admin.password === password
+      );
     }
     
-    localStorage.setItem('token', token);
-    localStorage.setItem('userRole', role);
-    
-    // Get user profile after successful login
-    const profileResponse = await api.get(`/${role}/profile`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    
-    let userData;
-    if (role === 'user') {
-      userData = profileResponse.data.user;
-    } else if (role === 'doctor') {
-      userData = profileResponse.data.doctor;
-    } else {
-      userData = profileResponse.data.admin;
+    if (!userData) {
+      throw new Error('Invalid email or password');
     }
     
-    setUser({
-      ...userData,
-      role
-    });
+    // Remove password from user data
+    const { password: _, ...userWithoutPassword } = userData;
+    
+    // Store user data in localStorage
+    localStorage.setItem('user', JSON.stringify(userWithoutPassword));
+    localStorage.setItem('userRole', dataRole);
+    
+    // Cast the user data to ensure it matches our User interface
+    setUser({...userWithoutPassword, role: dataRole} as User);
   };
 
   const register = async (userData: {
@@ -128,53 +136,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     age?: number;
     height?: number;
     weight?: number;
-    gender?: 'male' | 'female' | 'other';
+    gender?: string;
   }) => {
+    // For demo, we'll simulate registration success
+    // In a real app, this would add to the database
+    
     const { role, ...registrationData } = userData;
     
+    // Convert 'user' role to 'patient' for consistency with our data model
+    const dataRole = role === 'user' ? 'patient' : role;
+    
     // Validate required fields based on role
-    if (role === 'user') {
+    if (dataRole === 'patient') {
       if (!registrationData.age || !registrationData.height || !registrationData.weight || !registrationData.gender) {
         throw new Error('All fields are required for patient registration');
       }
-    } else if (role === 'doctor') {
+    } else if (dataRole === 'doctor') {
       if (!registrationData.specialization) {
         throw new Error('Specialization is required for doctor registration');
       }
     }
     
-    const response = await api.post(`/${role}/signup`, registrationData);
-    const { token, message } = response.data;
+    // Create a new user object with an ID
+    const newUser = {
+      id: Date.now(), // Use timestamp as ID for demo
+      ...registrationData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
     
-    if (!token) {
-      throw new Error(message || 'Failed to register');
-    }
+    // Remove password from stored user data
+    const { password: _, ...userWithoutPassword } = newUser;
     
-    localStorage.setItem('token', token);
-    localStorage.setItem('userRole', role);
-    
-    // Get user profile after successful registration
-    const profileResponse = await api.get(`/${role}/profile`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    
-    let newUserData;
-    if (role === 'user') {
-      newUserData = profileResponse.data.user;
-    } else if (role === 'doctor') {
-      newUserData = profileResponse.data.doctor;
-    } else {
-      newUserData = profileResponse.data.admin;
-    }
+    localStorage.setItem('user', JSON.stringify(userWithoutPassword));
+    localStorage.setItem('userRole', dataRole);
     
     setUser({
-      ...newUserData,
+      ...userWithoutPassword,
       role
-    });
+    } as User);
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     localStorage.removeItem('userRole');
     setUser(null);
   };

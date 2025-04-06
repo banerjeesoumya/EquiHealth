@@ -61,9 +61,9 @@ export default function Landing() {
       <section className="relative py-20 px-4 text-center overflow-hidden">
         <motion.div
           style={{ y, opacity }}
-          className="absolute inset-0 -z-10"
+          className="absolute inset-0 -z-10 after:content-[''] after:absolute after:inset-0 after:bg-background/30"
         >
-          <img src={heroImage} alt="" className="w-full h-full object-cover" />
+          <img src={heroImage} alt="Hero" className="w-full h-full object-cover" />
         </motion.div>
         <motion.div
           initial="hidden"
@@ -99,8 +99,12 @@ export default function Landing() {
               </Button>
             </Link>
           </motion.div>
-          <motion.div variants={fadeIn} className="mt-12 rounded-xl shadow-2xl max-w-4xl mx-auto overflow-hidden">
-            <ImagePlaceholder className="w-full aspect-[16/9]" />
+          <motion.div variants={fadeIn} className="mt-12 rounded-xl shadow-2xl max-w-4xl mx-auto overflow-hidden bg-background/80 backdrop-blur-sm">
+            <img 
+              src="https://images.unsplash.com/photo-1581056771107-24ca5f033842?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=675&q=80" 
+              alt="Healthcare Dashboard Preview" 
+              className="w-full aspect-[16/9] object-cover" 
+            />
           </motion.div>
         </motion.div>
       </section>
@@ -235,9 +239,9 @@ export default function Landing() {
       <section className="py-20 px-4 bg-muted relative overflow-hidden">
         <motion.div
           style={{ y: useTransform(scrollYProgress, [0, 1], ["0%", "30%"]) }}
-          className="absolute inset-0 -z-10"
+          className="absolute inset-0 -z-10 after:content-[''] after:absolute after:inset-0 after:bg-background/40"
         >
-          <img src={doctorImage} alt="" className="w-full h-full object-cover opacity-10" />
+          <img src={doctorImage} alt="" className="w-full h-full object-cover opacity-20" />
         </motion.div>
         <motion.div
           initial="hidden"
@@ -247,34 +251,26 @@ export default function Landing() {
           className="container mx-auto max-w-6xl relative z-10"
         >
           <div className="grid md:grid-cols-2 gap-12 items-center">
-            <motion.div variants={fadeIn} className="overflow-hidden rounded-xl shadow-2xl">
-              <ImagePlaceholder className="w-full aspect-[4/3]" />
+            <motion.div variants={fadeIn} className="overflow-hidden rounded-xl shadow-2xl bg-background/90 backdrop-blur-sm">
+              <img 
+                src={doctorImage} 
+                alt="Professional Doctor" 
+                className="w-full h-auto object-cover" 
+              />
             </motion.div>
             <motion.div variants={fadeIn} className="space-y-6">
               <h2 className="text-3xl md:text-4xl font-bold">
-                Join Our Network of Expert Doctors
+                Connect with Expert Doctors
               </h2>
               <p className="text-xl text-muted-foreground">
-                Are you a healthcare provider? Join our platform to expand your practice and provide better care to your patients.
+                Get access to qualified medical professionals across various specialties. Secure and confidential consultations tailored to your needs.
               </p>
-              <ul className="space-y-4">
-                {[
-                  "Manage patient records efficiently",
-                  "Schedule appointments seamlessly",
-                  "Access comprehensive health analytics",
-                  "Connect with patients securely"
-                ].map((feature, index) => (
-                  <li key={index} className="flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link to="/register">
-                <Button size="lg" className="mt-4">
-                  Join as a Doctor
-                </Button>
-              </Link>
+              <Button size="lg" asChild className="group">
+                <Link to="/register">
+                  Find a Doctor
+                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </Button>
             </motion.div>
           </div>
         </motion.div>
@@ -558,7 +554,9 @@ function FeatureCard({ icon, title, description, isHovered, onHover, onLeave }: 
       onHoverEnd={onLeave}
     >
       <div className="flex items-center gap-4 mb-4">
-        <AvatarPlaceholder className="w-12 h-12" />
+        <div className="w-12 h-12 flex items-center justify-center text-primary">
+          {icon}
+        </div>
         <div>
           <h4 className="font-semibold">{title}</h4>
           <p className="text-sm text-muted-foreground">{description}</p>
@@ -579,20 +577,23 @@ interface TestimonialCardProps {
 
 function TestimonialCard({ testimonial }: TestimonialCardProps) {
   return (
-    <div className="bg-muted/30 p-6 rounded-xl">
-      <div className="flex items-center gap-4 mb-4">
-        <AvatarPlaceholder className="w-12 h-12" />
+    <Card className="h-full flex flex-col bg-card/50 backdrop-blur-sm">
+      <CardHeader className="flex flex-row items-center gap-4">
+        <img 
+          src={testimonial.avatar} 
+          alt={testimonial.name} 
+          className="w-14 h-14 rounded-full object-cover ring-2 ring-primary/50" 
+        />
         <div>
-          <h4 className="font-semibold">{testimonial.name}</h4>
+          <CardTitle className="text-lg">{testimonial.name}</CardTitle>
           <p className="text-sm text-muted-foreground">{testimonial.role}</p>
         </div>
-      </div>
-      <p className="text-muted-foreground">{testimonial.quote}</p>
-      <div className="flex gap-1 mt-4">
-        {[...Array(5)].map((_, i) => (
-          <Star key={i} className="w-4 h-4 fill-primary text-primary" />
-        ))}
-      </div>
-    </div>
+      </CardHeader>
+      <CardContent className="flex-1">
+        <p className="text-muted-foreground italic">
+          &ldquo;{testimonial.quote}&rdquo;
+        </p>
+      </CardContent>
+    </Card>
   );
 } 
