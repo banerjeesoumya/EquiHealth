@@ -1,8 +1,8 @@
 export const patients = [
   {
     id: 1,
-    name: "John Smith",
-    email: "john.smith@example.com",
+    name: "Rajesh Sharma",
+    email: "rajesh.sharma@example.com",
     password: "Patient123!",
     age: 35,
     gender: "male",
@@ -15,8 +15,8 @@ export const patients = [
   },
   {
     id: 2,
-    name: "Emma Johnson",
-    email: "emma.johnson@example.com",
+    name: "Priya Patel",
+    email: "priya.patel@example.com",
     password: "Patient123!",
     age: 28,
     gender: "female",
@@ -29,8 +29,8 @@ export const patients = [
   },
   {
     id: 3,
-    name: "David Brown",
-    email: "david.brown@example.com",
+    name: "Vikram Singh",
+    email: "vikram.singh@example.com",
     password: "Patient123!",
     age: 45,
     gender: "male",
@@ -43,8 +43,8 @@ export const patients = [
   },
   {
     id: 4,
-    name: "Sophia Martinez",
-    email: "sophia.martinez@example.com",
+    name: "Neha Gupta",
+    email: "neha.gupta@example.com",
     password: "Patient123!",
     age: 32,
     gender: "female",
@@ -57,8 +57,8 @@ export const patients = [
   },
   {
     id: 5,
-    name: "Michael Wilson",
-    email: "michael.wilson@example.com",
+    name: "Arjun Reddy",
+    email: "arjun.reddy@example.com",
     password: "Patient123!",
     age: 50,
     gender: "male",
@@ -71,8 +71,8 @@ export const patients = [
   },
   {
     id: 6,
-    name: "Olivia Taylor",
-    email: "olivia.taylor@example.com",
+    name: "Anjali Desai",
+    email: "anjali.desai@example.com",
     password: "Patient123!",
     age: 25,
     gender: "female",
@@ -85,8 +85,8 @@ export const patients = [
   },
   {
     id: 7,
-    name: "James Anderson",
-    email: "james.anderson@example.com",
+    name: "Sanjay Mehta",
+    email: "sanjay.mehta@example.com",
     password: "Patient123!",
     age: 40,
     gender: "male",
@@ -99,8 +99,8 @@ export const patients = [
   },
   {
     id: 8,
-    name: "Ava Thomas",
-    email: "ava.thomas@example.com",
+    name: "Meera Joshi",
+    email: "meera.joshi@example.com",
     password: "Patient123!",
     age: 30,
     gender: "female",
@@ -113,8 +113,8 @@ export const patients = [
   },
   {
     id: 9,
-    name: "Robert Garcia",
-    email: "robert.garcia@example.com",
+    name: "Ravi Verma",
+    email: "ravi.verma@example.com",
     password: "Patient123!",
     age: 55,
     gender: "male",
@@ -127,8 +127,8 @@ export const patients = [
   },
   {
     id: 10,
-    name: "Isabella Lopez",
-    email: "isabella.lopez@example.com",
+    name: "Divya Malhotra",
+    email: "divya.malhotra@example.com",
     password: "Patient123!",
     age: 22,
     gender: "female",
@@ -144,8 +144,8 @@ export const patients = [
 export const doctors = [
   {
     id: 1,
-    name: "Dr. Sarah Reynolds",
-    email: "sarah.reynolds@example.com",
+    name: "Dr. Aditya Kapoor",
+    email: "aditya.kapoor@example.com",
     password: "Doctor123!",
     specialization: "Cardiology",
     experience: 12, 
@@ -157,8 +157,8 @@ export const doctors = [
   },
   {
     id: 2,
-    name: "Dr. William Chen",
-    email: "william.chen@example.com",
+    name: "Dr. Kavita Iyer",
+    email: "kavita.iyer@example.com",
     password: "Doctor123!",
     specialization: "Orthopedics",
     experience: 15,
@@ -170,8 +170,8 @@ export const doctors = [
   },
   {
     id: 3,
-    name: "Dr. Emily Harris",
-    email: "emily.harris@example.com",
+    name: "Dr. Rahul Nair",
+    email: "rahul.nair@example.com",
     password: "Doctor123!",
     specialization: "Neurology",
     experience: 8,
@@ -183,8 +183,8 @@ export const doctors = [
   },
   {
     id: 4,
-    name: "Dr. Daniel Morgan",
-    email: "daniel.morgan@example.com",
+    name: "Dr. Anand Chawla",
+    email: "anand.chawla@example.com",
     password: "Doctor123!",
     specialization: "Gastroenterology",
     experience: 10,
@@ -196,8 +196,8 @@ export const doctors = [
   },
   {
     id: 5,
-    name: "Dr. Sophia Patel",
-    email: "sophia.patel@example.com",
+    name: "Dr. Sunita Patel",
+    email: "sunita.patel@example.com",
     password: "Doctor123!",
     specialization: "Endocrinology",
     experience: 9,
@@ -353,34 +353,22 @@ export const symptoms = [
 
 export const predictionResults = {
   "Fever,Cough,Fatigue,Headache": [
-    { disease: "Common Cold", probability: 0.85 },
-    { disease: "Flu", probability: 0.75 },
-    { disease: "COVID-19", probability: 0.65 }
+    { disease: "Common Cold", probability: 0.85 }
   ],
   "Chest Pain,Shortness of Breath,Fatigue": [
-    { disease: "Coronary Artery Disease", probability: 0.8 },
-    { disease: "Pulmonary Embolism", probability: 0.65 },
-    { disease: "Anxiety", probability: 0.4 }
+    { disease: "Coronary Artery Disease", probability: 0.8 }
   ],
   "Headache,Vision Changes,Nausea": [
-    { disease: "Migraine", probability: 0.9 },
-    { disease: "Tension Headache", probability: 0.5 },
-    { disease: "Hypertension", probability: 0.4 }
+    { disease: "Migraine", probability: 0.9 }
   ],
   "Abdominal Pain,Nausea,Vomiting": [
-    { disease: "Gastroenteritis", probability: 0.75 },
-    { disease: "Appendicitis", probability: 0.6 },
-    { disease: "Food Poisoning", probability: 0.5 }
+    { disease: "Gastroenteritis", probability: 0.75 }
   ],
   "Joint Pain,Fatigue,Fever": [
-    { disease: "Rheumatoid Arthritis", probability: 0.8 },
-    { disease: "Lyme Disease", probability: 0.6 },
-    { disease: "Flu", probability: 0.5 }
+    { disease: "Rheumatoid Arthritis", probability: 0.8 }
   ],
   "default": [
-    { disease: "Common Cold", probability: 0.65 },
-    { disease: "Seasonal Allergy", probability: 0.45 },
-    { disease: "Stress-Related Condition", probability: 0.35 }
+    { disease: "Common Cold", probability: 0.65 }
   ]
 };
 
@@ -436,7 +424,7 @@ export const chatbotResponses = [
 ];
 
 export const defaultCredentials = {
-  patient: { email: "john.smith@example.com", password: "Patient123!" },
-  doctor: { email: "sarah.reynolds@example.com", password: "Doctor123!" },
+  patient: { email: "rajesh.sharma@example.com", password: "Patient123!" },
+  doctor: { email: "aditya.kapoor@example.com", password: "Doctor123!" },
   admin: { email: "admin@example.com", password: "Admin123!" }
 }; 
