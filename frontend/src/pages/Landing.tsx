@@ -57,7 +57,6 @@ export default function Landing() {
 
   return (
     <div ref={containerRef} className="min-h-screen">
-      {/* Hero Section */}
       <section className="relative py-20 px-4 text-center overflow-hidden">
         <motion.div
           style={{ y, opacity }}
@@ -109,7 +108,6 @@ export default function Landing() {
         </motion.div>
       </section>
 
-      {/* Stats Section with Counter Animation */}
       <section className="py-16 bg-primary/5">
         <motion.div
           initial="hidden"
@@ -129,7 +127,6 @@ export default function Landing() {
         </motion.div>
       </section>
 
-      {/* Features Section with Hover Effects */}
       <section className="py-20 px-4 bg-background">
         <motion.div
           initial="hidden"
@@ -161,7 +158,6 @@ export default function Landing() {
         </motion.div>
       </section>
 
-      {/* Mobile App Section with Interactive Demo */}
       <section className="py-20 px-4 bg-muted/30">
         <motion.div
           initial="hidden"
@@ -214,7 +210,6 @@ export default function Landing() {
         </motion.div>
       </section>
 
-      {/* Testimonials Section with Carousel */}
       <section className="py-20 px-4 bg-background">
         <motion.div
           initial="hidden"
@@ -235,7 +230,6 @@ export default function Landing() {
         </motion.div>
       </section>
 
-      {/* Doctor Section with Parallax */}
       <section className="py-20 px-4 bg-muted relative overflow-hidden">
         <motion.div
           style={{ y: useTransform(scrollYProgress, [0, 1], ["0%", "30%"]) }}
@@ -276,7 +270,6 @@ export default function Landing() {
         </motion.div>
       </section>
 
-      {/* CTA Section with Floating Elements */}
       <section className="py-20 px-4 bg-primary/5 relative overflow-hidden">
         <FloatingElements />
         <motion.div
@@ -312,7 +305,6 @@ export default function Landing() {
   );
 }
 
-// New Components
 interface CounterCardProps {
   number: number;
   label: string;
@@ -488,7 +480,6 @@ function FloatingElements() {
   );
 }
 
-// Constants
 const features = [
   {
     icon: <Activity className="w-12 h-12 text-primary" />,

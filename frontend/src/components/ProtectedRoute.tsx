@@ -17,7 +17,6 @@ export default function ProtectedRoute({ role }: ProtectedRouteProps) {
   }
 
   if (user.role !== role) {
-    // Redirect to appropriate dashboard based on user's actual role
     switch (user.role) {
       case 'admin':
         return <Navigate to="/admin/dashboard" replace />;
@@ -26,7 +25,6 @@ export default function ProtectedRoute({ role }: ProtectedRouteProps) {
       case 'patient':
         return <Navigate to="/dashboard" replace />;
       default:
-        // Fallback if role is unexpected (shouldn't happen)
         return <Navigate to="/login" replace />;
     }
   }

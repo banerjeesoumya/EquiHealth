@@ -11,11 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import { toast } from 'sonner';
 import { DatePicker } from '../../components/ui/date-picker';
 import { addDays } from 'date-fns';
+import { patients, doctors, appointments } from '../../lib';
 
-// Import mock data
-import { patients, doctors, appointments } from '../../mockData';
-
-// Generate time slots from 9 AM to 5 PM with 30-minute intervals
 const generateTimeSlots = () => {
   const slots = [];
   for (let hour = 9; hour < 17; hour++) {
@@ -42,13 +39,10 @@ export default function DoctorDashboard() {
   const [filteredAppointments, setFilteredAppointments] = useState<any[]>([]);
   const [patientDetails, setPatientDetails] = useState<any[]>([]);
 
-  // Simulate fetching doctor data and related appointments
   useEffect(() => {
-    // For demo, we'll use the first doctor from mock data or the logged-in user
     const userRole = localStorage.getItem('userRole');
     
     if (user && userRole === 'doctor') {
-      // If user is logged in as a doctor, use their data
       setDoctorData({
         id: user.id,
         name: user.name,
@@ -58,19 +52,15 @@ export default function DoctorDashboard() {
         availableSlots: user.availableSlots || {}
       });
     } else {
-      // Otherwise use the first doctor from mock data
       setDoctorData(doctors[0]);
     }
     
-    // Get doctor ID for filtering appointments
     const doctorId = user?.id || doctors[0].id;
     
-    // Filter appointments for this doctor
     const doctorAppointments = appointments.filter(
       appointment => appointment.doctorId === doctorId
     );
     
-    // Add patient info to appointments
     const appointmentsWithPatients = doctorAppointments.map(appointment => {
       const patient = patients.find(p => p.id === appointment.patientId);
       return {
@@ -81,7 +71,6 @@ export default function DoctorDashboard() {
     
     setFilteredAppointments(appointmentsWithPatients);
     
-    // Get all patients who have appointments with this doctor
     const doctorPatients = patients.filter(patient => 
       doctorAppointments.some(appt => appt.patientId === patient.id)
     );
@@ -89,7 +78,6 @@ export default function DoctorDashboard() {
     setPatientDetails(doctorPatients);
   }, [user]);
 
-  // Handle slot selection
   const toggleSlot = (slot: string) => {
     if (selectedSlots.includes(slot)) {
       setSelectedSlots(selectedSlots.filter(s => s !== slot));
@@ -98,7 +86,6 @@ export default function DoctorDashboard() {
     }
   };
 
-  // Save slots
   const saveAvailability = async () => {
     if (!selectedDate || selectedSlots.length === 0) {
       toast.error('Please select a date and at least one time slot');
@@ -106,7 +93,6 @@ export default function DoctorDashboard() {
     }
 
     try {
-      // Format slots as required by the backend
       const formattedDate = selectedDate.toISOString().split('T')[0];
       const formattedSlots = selectedSlots.map(slot => {
         const [time, period] = slot.split(' ');
@@ -121,7 +107,6 @@ export default function DoctorDashboard() {
         
         const startTime = `${hourNum.toString().padStart(2, '0')}:${minute}`;
         
-        // Calculate end time (30 minutes later)
         let endHourNum = hourNum;
         let endMinute = parseInt(minute);
         
@@ -149,10 +134,8 @@ export default function DoctorDashboard() {
         slots: formattedSlots
       });
       
-      // For demo, we'll just simulate a successful API call
       toast.success('Availability saved successfully');
       
-      // Update the doctor's available slots in our local state
       if (doctorData) {
         setDoctorData({
           ...doctorData,
@@ -170,7 +153,6 @@ export default function DoctorDashboard() {
     }
   };
 
-  // Update appointment status
   const updateAppointmentStatus = async (appointmentId: number, newStatus: string) => {
     try {
       console.log('Updating appointment status:', {
@@ -178,7 +160,6 @@ export default function DoctorDashboard() {
         status: newStatus
       });
       
-      // Update local state for demo
       setFilteredAppointments(prevAppointments => 
         prevAppointments.map(appointment => 
           appointment.id === appointmentId 

@@ -12,7 +12,6 @@ import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { DatePicker } from '../components/ui/date-picker';
 
-// Import mock data
 import { 
   patients, 
   doctors, 
@@ -20,7 +19,7 @@ import {
   symptoms as allSymptoms, 
   predictionResults, 
   chatbotResponses 
-} from '../mockData';
+} from '../lib';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -39,7 +38,6 @@ export default function Dashboard() {
   const [userAppointments, setUserAppointments] = useState<any[]>([]);
   const [availableDoctors, setAvailableDoctors] = useState<any[]>([]);
   
-  // Group doctors by specialization for departments
   const departments = [
     ...new Set(doctors.map(doctor => doctor.specialization))
   ].map(specialization => ({
@@ -49,19 +47,15 @@ export default function Dashboard() {
       .map(doctor => doctor.name)
   }));
 
-  // Simulate fetching user data and appointments
   useEffect(() => {
     let currentPatient: any = null;
     let patientIdForAppointments: number | string | null = null;
 
-    // Determine the current patient based on the authenticated user
     if (user && (user.role === 'patient' || user.role === 'user')) {
-      // Use logged-in user data
       currentPatient = {
         id: user.id,
         name: user.name,
         email: user.email,
-        // Use optional chaining and provide fallbacks for patient-specific data
         age: user.age ?? 30, 
         gender: user.gender ?? 'male',
         height: user.height ?? 175,
@@ -73,21 +67,17 @@ export default function Dashboard() {
       };
       patientIdForAppointments = user.id;
     } else if (!user) {
-      // Fallback to the first mock patient if no user is logged in (e.g., initial load state)
-      // This might still happen briefly before auth context initializes
       currentPatient = patients[0];
       patientIdForAppointments = patients[0].id;
     }
 
     setUserData(currentPatient);
 
-    // Filter appointments only if we have a valid patient ID
     if (patientIdForAppointments) {
       const patientAppointments = appointments.filter(
         appointment => appointment.patientId === patientIdForAppointments
       );
       
-      // Add doctor info to appointments
       const appointmentsWithDoctors = patientAppointments.map(appointment => {
         const doctor = doctors.find(d => d.id === appointment.doctorId);
         return {
@@ -98,29 +88,24 @@ export default function Dashboard() {
       });
       setUserAppointments(appointmentsWithDoctors);
     } else {
-      // Clear appointments if no valid patient ID
       setUserAppointments([]);
     }
 
-    // Set available doctors (this doesn't depend on the patient)
     setAvailableDoctors(doctors);
 
-  }, [user]); // Depend only on the user object from context
+  }, [user]); 
 
-  // Handle department change
   const handleDepartmentChange = (value: string) => {
     setSelectedDepartment(value);
     setSelectedDoctor('');
     setSelectedSlot('');
   };
 
-  // Handle doctor change
   const handleDoctorChange = (value: string) => {
     setSelectedDoctor(value);
     setSelectedSlot('');
   };
 
-  // Handle book appointment
   const bookAppointment = async () => {
     if (!selectedDoctor || !selectedDate || !selectedSlot) {
       toast.error('Please select a doctor, date, and time slot');
@@ -130,14 +115,12 @@ export default function Dashboard() {
     try {
       const formattedDate = selectedDate.toISOString().split('T')[0];
       
-      // Mock API call simulation
       console.log('Booking appointment:', {
         doctorId: selectedDoctor,
         date: formattedDate,
         slot: selectedSlot
       });
       
-      // Create a new appointment for the demo
       const newAppointment = {
         id: userAppointments.length + 1,
         patientId: userData.id,
@@ -163,7 +146,6 @@ export default function Dashboard() {
     }
   };
 
-  // Handle symptom selection
   const toggleSymptom = (symptom: string) => {
     setSelectedSymptoms(prev => 
       prev.includes(symptom) 
@@ -172,12 +154,10 @@ export default function Dashboard() {
     );
   };
 
-  // Handle symptom input
   const handleSymptomInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSymptomsInput(e.target.value);
   };
 
-  // Add custom symptom
   const addCustomSymptom = () => {
     if (symptomsInput.trim() && !selectedSymptoms.includes(symptomsInput.trim())) {
       setSelectedSymptoms([...selectedSymptoms, symptomsInput.trim()]);
@@ -185,7 +165,6 @@ export default function Dashboard() {
     }
   };
 
-  // Predict disease
   const predictDisease = async () => {
     if (selectedSymptoms.length === 0) {
       toast.error('Please select at least one symptom');
@@ -193,10 +172,8 @@ export default function Dashboard() {
     }
 
     try {
-      // Simulate prediction logic
       const symptomKey = selectedSymptoms.slice(0, 4).sort().join(',');
       
-      // Get prediction results from our mock data or use default
       const results = predictionResults[symptomKey as keyof typeof predictionResults] || 
                        predictionResults.default;
       
@@ -208,26 +185,20 @@ export default function Dashboard() {
     }
   };
 
-  // Find chatbot response
   const findChatbotResponse = (message: string) => {
     const lowercaseMessage = message.toLowerCase();
     
-    // Find matching keyword pattern
     for (const pattern of chatbotResponses) {
       for (const keyword of pattern.keywords) {
         if (lowercaseMessage.includes(keyword)) {
-          // Return a random response from the matching pattern
           const responses = pattern.responses;
           return responses[Math.floor(Math.random() * responses.length)];
         }
       }
     }
-    
-    // Default response if no matching keywords
-    return "I'm sorry, I don't have specific information about that. Would you like to speak with a doctor? You can book an appointment from the 'Book Appointment' tab.";
+        return "I'm sorry, I don't have specific information about that. Would you like to speak with a doctor? You can book an appointment from the 'Book Appointment' tab.";
   };
 
-  // Send message to chatbot
   const sendMessage = async () => {
     if (!chatMessage.trim()) return;
     
@@ -235,15 +206,13 @@ export default function Dashboard() {
     setChatHistory([...chatHistory, { message: userMessage, sender: 'user' }]);
     setChatMessage('');
     
-    // Simulate API delay
     setTimeout(() => {
       const botResponse = findChatbotResponse(userMessage);
       setChatHistory(prev => [...prev, { message: botResponse, sender: 'bot' }]);
     }, 1000);
   };
 
-  // Get available slots for selected doctor and date
-  const getAvailableSlots = (): string[] => {
+   const getAvailableSlots = (): string[] => {
     if (!selectedDoctor) return [];
     
     const doctor = doctors.find(d => d.name === selectedDoctor);
@@ -251,22 +220,17 @@ export default function Dashboard() {
     
     const formattedDate = selectedDate ? selectedDate.toISOString().split('T')[0] : '';
     
-    // Default slots as fallback
     const defaultSlots = ['9:00 AM', '10:30 AM', '2:00 PM', '3:30 PM'];
     
-    // If no availableSlots, return default slots
     if (!doctor.availableSlots) return defaultSlots;
     
-    // Use a type-safe approach with hasOwnProperty check
     if (doctor.availableSlots.hasOwnProperty(formattedDate)) {
-      // We know it exists, so this access is safe
       return (doctor.availableSlots as any)[formattedDate];
     }
     
     return defaultSlots;
   };
 
-  // Add a loading or placeholder state while userData is null
   if (!userData) {
     return <div className="container py-8 text-center">Loading patient data...</div>;
   }
@@ -662,7 +626,6 @@ export default function Dashboard() {
         </TabsContent>
       </Tabs>
       
-      {/* Floating Chatbot */}
       {showChatbot && (
         <div className="fixed bottom-4 right-4 w-80 md:w-96 bg-background border rounded-lg shadow-lg flex flex-col z-50">
           <div className="p-3 border-b flex items-center justify-between">

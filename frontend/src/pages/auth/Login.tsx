@@ -7,7 +7,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
-import { defaultCredentials } from '../../mockData';
+import { defaultCredentials } from '../../lib';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -25,7 +25,6 @@ export default function Login() {
       await login(email, password, role);
       toast.success('Logged in successfully');
       
-      // Redirect based on role
       switch (role) {
         case 'admin':
           navigate('/admin/dashboard');
@@ -119,13 +118,13 @@ export default function Login() {
             <Button type="button" variant="outline" className="w-full" onClick={fillDemoCredentials}>
               Use Demo Credentials
             </Button>
-            <div className="text-sm text-muted-foreground space-y-2 mt-2">
+            {/* <div className="text-sm text-muted-foreground space-y-2 mt-2">
               <p className="font-semibold text-center">Demo Credentials:</p>
               <p><strong>Patient:</strong> {defaultCredentials.patient.email}</p>
               <p><strong>Doctor:</strong> {defaultCredentials.doctor.email}</p>
               <p><strong>Admin:</strong> {defaultCredentials.admin.email}</p>
               <p className="text-xs text-center mt-2">All passwords: {defaultCredentials.patient.password}</p>
-            </div>
+            </div> */}
           </CardFooter>
         </form>
       </Card>

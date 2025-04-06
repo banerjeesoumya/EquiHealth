@@ -61,7 +61,6 @@ export default function Register() {
       await register(registrationData);
       toast.success('Registered successfully');
       
-      // Redirect based on role
       switch (role) {
         case 'doctor':
           navigate('/doctor/dashboard');

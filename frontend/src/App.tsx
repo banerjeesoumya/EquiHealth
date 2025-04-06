@@ -18,12 +18,10 @@ function App() {
         <Router>
           <Layout>
             <Routes>
-              {/* Public Routes */}
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
 
-              {/* Protected Routes */}
               <Route element={<ProtectedRoute role="patient" />}>
                 <Route path="/dashboard" element={<Dashboard />} />
               </Route>
@@ -35,8 +33,6 @@ function App() {
               <Route element={<ProtectedRoute role="admin" />}>
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
               </Route>
-
-              {/* Fallback route */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Layout>

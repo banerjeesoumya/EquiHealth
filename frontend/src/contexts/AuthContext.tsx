@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 // Import mock data
-import { patients, doctors, admins } from '../mockData';
+import { patients, doctors, admins } from '../lib';
 
 interface User {
   id: string | number;
@@ -84,8 +84,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       
       if (foundDoctor) {
-        // Create a clean copy of the doctor object that matches our User interface
-        // Handle availableSlots specifically to ensure it's a proper Record
         const slots: Record<string, string[]> = {};
         if (foundDoctor.availableSlots) {
           Object.entries(foundDoctor.availableSlots).forEach(([date, timeSlots]) => {
@@ -116,14 +114,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('Invalid email or password');
     }
     
-    // Remove password from user data
     const { password: _, ...userWithoutPassword } = userData;
     
-    // Store user data in localStorage
     localStorage.setItem('user', JSON.stringify(userWithoutPassword));
     localStorage.setItem('userRole', dataRole);
     
-    // Cast the user data to ensure it matches our User interface
     setUser({...userWithoutPassword, role: dataRole} as User);
   };
 
@@ -138,15 +133,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     weight?: number;
     gender?: string;
   }) => {
-    // For demo, we'll simulate registration success
-    // In a real app, this would add to the database
     
     const { role, ...registrationData } = userData;
     
-    // Convert 'user' role to 'patient' for consistency with our data model
     const dataRole = role === 'user' ? 'patient' : role;
     
-    // Validate required fields based on role
     if (dataRole === 'patient') {
       if (!registrationData.age || !registrationData.height || !registrationData.weight || !registrationData.gender) {
         throw new Error('All fields are required for patient registration');
@@ -157,15 +148,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     
-    // Create a new user object with an ID
     const newUser = {
-      id: Date.now(), // Use timestamp as ID for demo
+      id: Date.now(), 
       ...registrationData,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
     
-    // Remove password from stored user data
     const { password: _, ...userWithoutPassword } = newUser;
     
     localStorage.setItem('user', JSON.stringify(userWithoutPassword));
