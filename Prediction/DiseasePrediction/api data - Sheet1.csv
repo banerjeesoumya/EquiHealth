@@ -1,0 +1,134 @@
+INPUT,OUTPUT
+"pruritus, scratchy skin, irritated skin, tickling sensation",itching
+"dermatitis, hives, urticaria, eczema, red spots",skin_rash
+"red bumps, tender nodules, swollen nodes",nodal_skin_eruptions
+"persistent sneezing, allergic sneezing, rhinitis",continuous_sneezing
+"trembling, quivering, shaking, shuddering",shivering
+"chills, cold sweats, goosebumps",chills
+"joint ache, arthritis pain, stiff joints",joint_pain
+"stomach ache, belly pain, abdominal discomfort",stomach_pain
+"heartburn, acid reflux, sour stomach",acidity
+"tongue sores, canker sores",ulcers_on_tongue
+"muscle thinning, muscle atrophy",muscle_wasting
+"vomiting, puking, throwing up, barfing",vomiting
+"painful urination, burning sensation while peeing",burning_micturition
+"blood in urine, spotting during urination",spotting_ urination
+"tiredness, exhaustion",fatigue
+"weight increase, gaining pounds",weight_gain
+"nervousness, uneasiness",anxiety
+cold fingers and toes,cold_hands_and_feets
+"mood changes, emotional swings",mood_swings
+weight reduction,weight_loss
+"agitation, inability to relax",restlessness
+sluggishness,lethargy
+throat patches,patches_in_throat
+fluctuating sugar levels,irregular_sugar_level
+hacking cough,cough
+feverishness,high_fever
+sunken eyes,sunken_eyes
+difficulty breathing,breathlessness
+perspiration,sweating
+lack of fluids,dehydration
+upset stomach,indigestion
+"migraine, head pain",headache
+"jaundice-like skin, yellow skin discoloration",yellowish_skin
+"dark-colored urine, brown urine",dark_urine
+"queasiness, feeling sick",nausea
+"loss of hunger, reduced appetite",loss_of_appetite
+"eye strain, eye pain",pain_behind_the_eyes
+"spinal ache, backache",back_pain
+"bowel blockage, difficulty passing stool",constipation
+"belly cramps, abdominal cramps",abdominal_pain
+"loose stools, watery stool",diarrhoea
+"mild temperature, low fever",mild_fever
+discolored urine,yellow_urine
+yellow eyes,yellowing_of_eyes
+liver dysfunction,acute_liver_failure
+"water retention, fluid buildup",fluid_overload
+swollen stomach,swelling_of_stomach
+swollen lymph nodes,swelled_lymph_nodes
+"general discomfort, uneasiness",malaise
+"blurred vision, distorted vision",blurred_and_distorted_vision
+mucus in throat,phlegm
+throat irritation,throat_irritation
+red eyes,redness_of_eyes
+sinus pressure,sinus_pressure
+runny nose,runny_nose
+nasal congestion,congestion
+chest discomfort,chest_pain
+weak limbs,weakness_in_limbs
+rapid heartbeat,fast_heart_rate
+painful bowel movements,pain_during_bowel_movements
+"anal pain, discomfort in anal region",pain_in_anal_region
+"bloody stool, blood in poop",bloody_stool
+"itchy anus, anus irritation",irritation_in_anus
+"neck ache, stiff neck",neck_pain
+"lightheadedness, feeling faint",dizziness
+"muscle cramps, spasms",cramps
+"skin discoloration, skin marks",bruising
+"overweight, excessive weight",obesity
+"swollen feet, leg swelling",swollen_legs
+"bulging veins, enlarged blood vessels",swollen_blood_vessels
+"puffy eyes, bloated face",puffy_face_and_eyes
+enlarged thyroid gland,enlarged_thyroid
+fragile nails,brittle_nails
+swollen hands and feet,swollen_extremeties
+excessive appetite,excessive_hunger
+"infidelity, risky sexual behavior",extra_marital_contacts
+"dry lips, tingling lips",drying_and_tingling_lips
+unclear speech,slurred_speech
+knee ache,knee_pain
+hip discomfort,hip_joint_pain
+weak muscles,muscle_weakness
+stiff shoulders,stiff_neck
+joint swelling,swelling_joints
+rigid movements,movement_stiffness
+"dizziness, vertigo",spinning_movements
+imbalance,loss_of_balance
+unsteady walking,unsteadiness
+side weakness,weakness_of_one_body_side
+inability to smell,loss_of_smell
+"bladder pain, urinary discomfort",bladder_discomfort
+"smelly urine, bad odor in urine",foul_smell_of urine
+"frequent urge to pee, constant need to urinate",continuous_feel_of_urine
+"passing gas, flatulence",passage_of_gases
+"internal skin itching, deep itching",internal_itching
+"toxic appearance, feverish look",toxic_look_(typhos)
+"sadness, low mood",depression
+"anger, frustration, moodiness",irritability
+"sore muscles, body aches",muscle_pain
+"confusion, altered mental state",altered_sensorium
+"red marks on skin, red patches",red_spots_over_body
+"stomach cramps, abdominal discomfort",belly_pain
+"irregular periods, abnormal menstrual bleeding",abnormal_menstruation
+skin discoloration patches,dischromic _patches
+"teary eyes, watery eyes",watering_from_eyes
+"hunger pangs, increased food cravings",increased_appetite
+excessive urination,polyuria
+family medical history,family_history
+mucus in cough,mucoid_sputum
+rusty-colored phlegm,rusty_sputum
+inability to focus,lack_of_concentration
+vision problems,visual_disturbances
+received blood transfusion,receiving_blood_transfusion
+unclean injections,receiving_unsterile_injections
+unconsciousness,coma
+bleeding in stomach,stomach_bleeding
+bloated abdomen,distention_of_abdomen
+alcohol use,history_of_alcohol_consumption
+fluid retention,fluid_overload
+"coughing blood, bloody sputum",blood_in_sputum
+"visible veins, bulging veins",prominent_veins_on_calf
+"rapid heartbeat, fluttering heart",palpitations
+"painful steps, difficulty walking",painful_walking
+"pus-filled acne, infected pimples",pus_filled_pimples
+"clogged pores, blemishes",blackheads
+"flaking skin, shedding skin",scurring
+"dry skin, cracked skin",skin_peeling
+"flaky skin, silvery scales",silver_like_dusting
+"nail pits, small holes in nails",small_dents_in_nails
+"inflamed nails, red nails",inflammatory_nails
+"skin blisters, fluid-filled bumps",blister
+"Redness around nostrils, Inflamed skin near nose, Irritated skin around nose, Rash near nose, Swollen nose area, Tender skin around nostril",red_sore_around_nose
+"Pus discharge, Yellow scab, Fluid leakage, Sticky yellow crust, Oozing sores
+",yellow_crust_ooze
