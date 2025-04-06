@@ -5,9 +5,8 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Label } from '../components/ui/label';
-import { addDays, format } from 'date-fns';
+import { addDays } from 'date-fns';
 import { Input } from '../components/ui/input';
-import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { DatePicker } from '../components/ui/date-picker';
@@ -36,7 +35,6 @@ export default function Dashboard() {
   const [symptomsInput, setSymptomsInput] = useState('');
   const [userData, setUserData] = useState<any>(null);
   const [userAppointments, setUserAppointments] = useState<any[]>([]);
-  const [availableDoctors, setAvailableDoctors] = useState<any[]>([]);
   
   const departments = [
     ...new Set(doctors.map(doctor => doctor.specialization))
@@ -90,8 +88,6 @@ export default function Dashboard() {
     } else {
       setUserAppointments([]);
     }
-
-    setAvailableDoctors(doctors);
 
   }, [user]); 
 

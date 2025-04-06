@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Activity, Heart, Users, Calendar, Shield, Stethoscope, Star, ArrowRight, CheckCircle2, Image as ImageIcon } from 'lucide-react';
+import { Activity, Heart, Users, Calendar, Shield, Stethoscope, Star, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { heroImage, doctorImage, mobileAppImage, avatars } from '../assets/images';
 import { useRef, useState, useEffect } from 'react';
@@ -26,22 +26,6 @@ const scaleIn = {
   hidden: { scale: 0.8, opacity: 0 },
   visible: { scale: 1, opacity: 1, transition: { duration: 0.5 } }
 };
-
-function ImagePlaceholder({ className }: { className?: string }) {
-  return (
-    <div className={`bg-muted flex items-center justify-center ${className}`}>
-      <ImageIcon className="w-12 h-12 text-muted-foreground/50" />
-    </div>
-  );
-}
-
-function AvatarPlaceholder({ className }: { className?: string }) {
-  return (
-    <div className={`bg-muted rounded-full flex items-center justify-center ${className}`}>
-      <Users className="w-6 h-6 text-muted-foreground/50" />
-    </div>
-  );
-}
 
 export default function Landing() {
   const containerRef = useRef(null);
@@ -421,7 +405,7 @@ function TestimonialCarousel({ testimonials }: TestimonialCarouselProps) {
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
           dragElastic={1}
-          onDragEnd={(e, { offset, velocity }) => {
+          onDragEnd={(_e, { offset, velocity }) => {
             const swipe = swipePower(offset.x, velocity.x);
 
             if (swipe < -swipeConfidenceThreshold) {
