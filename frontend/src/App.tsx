@@ -24,7 +24,7 @@ function App() {
               <Route path="/register" element={<Register />} />
 
               {/* Protected Routes */}
-              <Route element={<ProtectedRoute role="user" />}>
+              <Route element={<ProtectedRoute role="patient" />}>
                 <Route path="/dashboard" element={<Dashboard />} />
               </Route>
 
