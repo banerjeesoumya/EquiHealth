@@ -1,8 +1,8 @@
-# misFITs - Healthcare Disease Prediction Platform
+# EquiHealth - Healthcare Disease Prediction Platform
 
 ## Overview
 
-misFITs is a comprehensive healthcare platform that combines modern web technologies with machine learning to predict and manage diseases. The system serves different user roles including patients, doctors, and administrators, providing tailored experiences for each.
+EquiHealth is a comprehensive healthcare platform that combines modern web technologies with machine learning to predict and manage diseases. The system serves different user roles including patients, doctors, and administrators, providing tailored experiences for each.
 
 ## Features
 
@@ -36,10 +36,10 @@ misFITs is a comprehensive healthcare platform that combines modern web technolo
 ## Project Structure
 
 ```
-misFITs/
-├── frontend/         # React frontend application
-├── backend/          # Hono.js API server
-└── Prediction/       # ML models for disease prediction
+EquiHealth/
+├── frontend/         
+├── backend/          
+└── Prediction/       
 ```
 
 ## Getting Started
@@ -98,4 +98,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgements
 
 - This project was developed to improve healthcare access and early disease detection
-- Thanks to all contributors and testers
+- Thanks to all contributors
