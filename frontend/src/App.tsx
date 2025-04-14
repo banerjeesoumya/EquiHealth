@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/admin/Dashboard';
 import DoctorDashboard from './pages/doctor/Dashboard';
 import { AuthProvider } from './contexts/AuthContext';
+import { Analytics } from '@vercel/analytics/react';
 import Landing from './pages/Landing';
 
 function App() {
@@ -38,9 +39,9 @@ function App() {
           </Layout>
           <Toaster position="top-center" richColors />
         </Router>
+        <Analytics />
       </AuthProvider>
     </ThemeProvider>
   );
 }
-
 export default App;
