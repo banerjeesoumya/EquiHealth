@@ -1,8 +1,9 @@
 import { Hono } from "hono";
-import z from "zod";
 import { Prisma, PrismaClient } from "@prisma/client/edge";
 import { withAccelerate } from "@prisma/extension-accelerate";
 import { sign, verify } from "hono/jwt";
+import { appointmentUpdateSchema, availabilitySchema, signinSchema, signupSchema } from "../utils/doctorType";
+import { formatDate } from "../utils/userType";
 
 export const doctorRouter = new Hono<{
     Bindings:{
@@ -13,44 +14,6 @@ export const doctorRouter = new Hono<{
         role: string
     }
 }>();
-
-function formatDate(date: Date): string {
-    const options: Intl.DateTimeFormatOptions = {
-    year: "numeric",
-    month: "long",
-    day: "numeric"
-};
-return date.toLocaleDateString("en-US", options);
-}
-
-const signupSchema = z.object({
-    email: z.string().email("Please enter a valid email"),
-    name: z.string().min(3, "Name must be at least 3 characters long"),
-    password: z.string().min(8, "Password must be at least 8 characters long"),
-    specialization: z.string().min(3, "Specialization must be specified"),
-})
-
-const signinSchema = z.object({
-    email: z.string().email("Please enter a valid email"),
-    password: z.string().min(8, "Password must be at least 8 characters long"),
-})
-
-export const availabilitySchema = z.object({
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Invalid date format. Use YYYY-MM-DD." }),
-    slots: z.array(
-        z.object({
-            start: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, { message: "Invalid start time format (HH:MM)." }),
-            end: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, { message: "Invalid end time format (HH:MM)." })
-        })
-    ).nonempty({ message: "At least one slot must be specified." })
-});
-
-const appointmentUpdateSchema = z.object({
-    appointmentId: z.string().min(1, "Appointment ID is required."),
-    stat: z.enum(["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"], {
-        errorMap: () => ({ message: "Invalid status. Use 'PENDING', 'CONFIRMED', 'COMPLETED', or 'CANCELLED'." })
-    })
-});
 
 doctorRouter.post("/signup", async(c) => {
     const prisma  = new PrismaClient({
@@ -83,10 +46,10 @@ doctorRouter.post("/signup", async(c) => {
 
         const doctor = await prisma.doctor.create({
             data:{
-                email: body.email,
-                name: body.name,
-                password: body.password,
-                specialization: body.specialization
+                email: correctSignUpBody.data.email,
+                name: correctSignUpBody.data.name,
+                password: correctSignUpBody.data.password,
+                specialization: correctSignUpBody.data.specialization
             }
         })
 
@@ -127,8 +90,8 @@ doctorRouter.post("/signin", async(c) => {
     try {
         const doctor = await prisma.doctor.findUnique({
             where: {
-                email: body.email,
-                password: body.password
+                email: correctSignInBody.data.email,
+                password: correctSignInBody.data.password
             }
         });
 
@@ -147,7 +110,14 @@ doctorRouter.post("/signin", async(c) => {
         c.status(200);
         return c.json({
             message: "Signed in successfully",
-            token: token
+            token: token,
+            doctor: {
+                email: doctor.email,
+                name: doctor.name,
+                specialization: doctor.specialization,
+                createdAt: formatDate(doctor.createdAt),
+                updatedAt: formatDate(doctor.updatedAt),
+            },
         })
     } catch (e) {
         c.status(500);
@@ -381,7 +351,6 @@ doctorRouter.delete("/availability", async (c) => {
 
         console.log("🟢 Existing slots:", existingAvailability.slots);
 
-        // Filter out the slots to be deleted
         const updatedSlots = existingAvailability.slots.filter(
             // @ts-ignore
             (slot) => !slots.some((delSlot) => delSlot.start === slot.start && delSlot.end === slot.end)
@@ -395,7 +364,6 @@ doctorRouter.delete("/availability", async (c) => {
 
         console.log("🗑️ Updated slots after deletion:", updatedSlots);
 
-        // Update or delete availability record
         if (updatedSlots.length === 0) {
             console.log("🗑️ No slots left, deleting the availability record...");
             await prisma.doctorAvailability.delete({
