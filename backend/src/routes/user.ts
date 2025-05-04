@@ -1,10 +1,10 @@
 import { Hono } from "hono";
-import z from "zod";
 import { PrismaClient } from "@prisma/client/edge";
 import { withAccelerate } from "@prisma/extension-accelerate";
 import { sign, verify, decode } from "hono/jwt";
 import axios from "axios";
 import OpenAI from "openai";
+import { appointmentSchema, chatSupportSchema, formatDate, predictionSchema, signInSchema, signUpSchema, specializationSchema, updateSchema } from "../utils/userType";
 
 export const userRouter = new Hono<{
     Bindings: {
@@ -19,55 +19,7 @@ export const userRouter = new Hono<{
     }
 }>();
 
-function formatDate(date: Date): string {
-        const options: Intl.DateTimeFormatOptions = {
-        year: "numeric",
-        month: "long",
-        day: "numeric"
-    };
-    return date.toLocaleDateString("en-US", options);
-}
 
-const signUpSchema = z.object({
-    email: z.string().email("Please enter a valid email"),
-    name: z.string().min(3, "Name must be at least 3 characters long"),
-    age: z.number().int(),
-    height: z.number().int(),
-    weight: z.number().int(),
-    gender: z.enum(["male", "female", "other"]),
-    password: z.string().min(8, "Password must be at least 8 characters long"),
-})
-
-const signInSchema = z.object({
-    email: z.string().email("Please enter a valid email"),
-    password: z.string().min(8, "Password must be at least 8 characters long"),
-})
-
-const updateSchema = z.object({
-    name: z.string().optional(),
-    age: z.number().int().optional(),
-    height: z.number().int().optional(),
-    weight: z.number().int().optional(),
-    gender: z.enum(["male", "female", "other"]).optional(),
-});
-
-const specializationSchema = z.object({
-    specialization: z.string()
-});
-
-const appointmentSchema = z.object({
-    doctorId: z.string(),
-    slot: z.string(),
-    date: z.string()
-});
-
-const predictionSchema = z.object({
-    symptoms: z.array(z.string()).min(1, "At least one symptom must be provided")
-});
-
-const chatSupportSchema =z.object({
-    message: z.string().min(1, "Message cannot be empty"),
-})
 userRouter.post("/signup", async (c) => {
     const prisma = new PrismaClient({
         datasourceUrl: c.env.DATABASE_URL
@@ -114,7 +66,14 @@ userRouter.post("/signup", async (c) => {
             c.status(200);
             return c.json({
                 message: "Sign up successful",
-                token: token
+                token: token,
+                user:{
+                    email: user.email,
+                    name: user.name,
+                    age: user.age,
+                    height: user.height,
+                    weight: user.weight,
+                }
             })
         }
     } catch (e) {
@@ -162,7 +121,14 @@ userRouter.post("/signin", async (c) => {
         c.status(200);
         return c.json({
             message: "Signed in successfully",
-            token: token
+            token: token,
+            user:{
+                email: user.email,
+                name: user.name,
+                age: user.age,
+                height: user.height,
+                weight: user.weight,
+            }
         })
     } catch (e) {
         c.status(400);
@@ -258,7 +224,16 @@ userRouter.put("/update", async (c) => {
             data: body,
         });
         c.status(200);
-        return c.json({ message: "User updated successfully"});
+        return c.json({
+            message: "User profile updated successfully",
+            user: {
+                email: updatedUser.email,
+                name: updatedUser.name,
+                age: updatedUser.age,
+                height: updatedUser.height,
+                weight: updatedUser.weight,
+            }
+        })
     } catch (e) {
         console.error(e);
         c.status(500);
@@ -283,12 +258,22 @@ userRouter.get("/getDoctorsBySpecialization", async (c) => {
 
     try {
         const doctors = await prisma.doctor.findMany({
-            where: { specialization: body.specialization },
-            select: { id: true, name: true }
+            where: { 
+                specialization: correctSpecializationBody.data.specialization 
+            },
+            select: { 
+                id: true, 
+                name: true 
+            }
         });
         
         c.status(200);
-        return c.json({ doctors });
+        return c.json({ 
+            doctors: doctors.map((doctor) => ({
+                id: doctor.id,
+                name: doctor.name
+            })) 
+        });
     } catch (e) {
         console.error(e);
         c.status(500);
@@ -312,16 +297,23 @@ userRouter.get("/getDoctorSlots", async (c) => {
     
     try {
         const doctorAvailability = await prisma.doctorAvailability.findFirst({
-            where: { doctorId, date: new Date(date) }
+            where: { 
+                doctorId, 
+                date: new Date(date)
+            }
         });
         
         if (!doctorAvailability) {
             c.status(404);
-            return c.json({ message: "No available slots for this doctor on the given date" });
+            return c.json({ 
+                message: "No available slots for this doctor on the given date" 
+            });
         }
         
         c.status(200);
-        return c.json({ slots: doctorAvailability.slots });
+        return c.json({ 
+            slots: doctorAvailability.slots 
+        });
     } catch (e) {
         console.error(e);
         c.status(500);
@@ -346,7 +338,9 @@ userRouter.post("/bookAppointment", async (c) => {
 
     try {
         const doctorAvailability = await prisma.doctorAvailability.findFirst({
-            where: { doctorId: body.doctorId, date: new Date(body.date) }
+            where: { 
+                doctorId: correctAppointmentBody.data.doctorId, 
+                date: new Date(correctAppointmentBody.data.date) }
         });
 
         console.log("Doctor Availability:", doctorAvailability);
@@ -354,10 +348,12 @@ userRouter.post("/bookAppointment", async (c) => {
 
         if (!doctorAvailability || !Array.isArray(doctorAvailability.slots)) {
             c.status(400);
-            return c.json({ message: "No available slots for this doctor on the selected date" });
+            return c.json({ 
+                message: "No available slots for this doctor on the selected date" 
+            });
         }
 
-        const selectedSlot = body.slot.replace(/\s?(AM|PM)/, "");  
+        const selectedSlot = correctAppointmentBody.data.slot.replace(/\s?(AM|PM)/, "");  
 
         const slotExists = doctorAvailability.slots.some(slot => 
             typeof slot === 'object' && slot !== null && 'start' in slot && slot.start === selectedSlot
@@ -371,9 +367,9 @@ userRouter.post("/bookAppointment", async (c) => {
         const appointment = await prisma.appointment.create({
             data: {
                 userId,
-                doctorId: body.doctorId,
+                doctorId: correctAppointmentBody.data.doctorId,
                 slot: selectedSlot,
-                date: new Date(body.date),
+                date: new Date(correctAppointmentBody.data.date),
                 status: "PENDING",
                 meetingId: null
             }
@@ -406,7 +402,16 @@ userRouter.get("/getAppointments", async (c) => {
         });
         
         c.status(200);
-        return c.json({ appointments });
+        return c.json({ 
+            appointments: appointments.map((appointment) => ({
+                id: appointment.id,
+                doctorName: appointment.doctor.name,
+                specialization: appointment.doctor.specialization,
+                slot: appointment.slot,
+                date: formatDate(appointment.date),
+                status: appointment.status
+            })) 
+        });
     } catch (e) {
         console.error(e);
         c.status(500);
