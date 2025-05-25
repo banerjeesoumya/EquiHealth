@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Activity, Calendar, Heart, Scale, Utensils, MessageSquare, Plus, Clock, Stethoscope } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
@@ -10,15 +10,7 @@ import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { DatePicker } from '../components/ui/date-picker';
-
-import { 
-  patients, 
-  doctors, 
-  appointments, 
-  symptoms as allSymptoms, 
-  predictionResults, 
-  chatbotResponses 
-} from '../lib';
+import axios from '../lib/axios';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -35,6 +27,15 @@ export default function Dashboard() {
   const [symptomsInput, setSymptomsInput] = useState('');
   const [userData, setUserData] = useState<any>(null);
   const [userAppointments, setUserAppointments] = useState<any[]>([]);
+  const [doctors, setDoctors] = useState<any[]>([]);
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [symptoms, setSymptoms] = useState<string[]>([]);
+  const [chatbotResponses, setChatbotResponses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [specializations, setSpecializations] = useState<string[]>(["Cardiology", "Neurology", "Orthopedics", "Gastroenterology", "Endocrinology"]);
+  const [selectedSpecialization, setSelectedSpecialization] = useState('');
+  const [slots, setSlots] = useState<any[]>([]);
   
   const departments = [
     ...new Set(doctors.map(doctor => doctor.specialization))
@@ -45,100 +46,81 @@ export default function Dashboard() {
       .map(doctor => doctor.name)
   }));
 
+  const fetchAppointments = useCallback(async () => {
+    try {
+      const appointmentsRes = await axios.get('/user/getAppointments');
+      setAppointments(appointmentsRes.data.appointments || []);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to fetch appointments');
+    }
+  }, []);
+
   useEffect(() => {
-    let currentPatient: any = null;
-    let patientIdForAppointments: number | string | null = null;
+    fetchAppointments();
+  }, [fetchAppointments]);
 
-    if (user && (user.role === 'patient' || user.role === 'user')) {
-      currentPatient = {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        age: user.age ?? 30, 
-        gender: user.gender ?? 'male',
-        height: user.height ?? 175,
-        weight: user.weight ?? 70,
-        bmi: user.bmi ?? 24.5,
-        medicalHistory: user.medicalHistory ?? [],
-        lastVisit: user.lastVisit ?? '2024-03-01',
-        nextAppointment: user.nextAppointment ?? '2024-04-15'
-      };
-      patientIdForAppointments = user.id;
-    } else if (!user) {
-      currentPatient = patients[0];
-      patientIdForAppointments = patients[0].id;
+  const fetchDoctorsBySpecialization = async (specialization: string) => {
+    try {
+      const res = await axios.post('/user/getDoctorsBySpecialization', { body: { specialization } });
+      setDoctors(res.data.doctors || []);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to fetch doctors');
+      setDoctors([]);
     }
+  };
 
-    setUserData(currentPatient);
-
-    if (patientIdForAppointments) {
-      const patientAppointments = appointments.filter(
-        appointment => appointment.patientId === patientIdForAppointments
-      );
-      
-      const appointmentsWithDoctors = patientAppointments.map(appointment => {
-        const doctor = doctors.find(d => d.id === appointment.doctorId);
-        return {
-          ...appointment,
-          doctor: doctor?.name || 'Unknown Doctor',
-          department: doctor?.specialization || 'General',
-        };
-      });
-      setUserAppointments(appointmentsWithDoctors);
-    } else {
-      setUserAppointments([]);
+  const fetchDoctorSlots = async (doctorId: string, date: Date) => {
+    try {
+      const res = await axios.get('/user/getDoctorSlots', { params: { doctorId, date: date.toISOString().split('T')[0] } });
+      setSlots(res.data.slots || []);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to fetch slots');
+      setSlots([]);
     }
-
-  }, [user]); 
+  };
 
   const handleDepartmentChange = (value: string) => {
     setSelectedDepartment(value);
+    setSelectedSpecialization(value);
     setSelectedDoctor('');
     setSelectedSlot('');
+    setSlots([]);
+    fetchDoctorsBySpecialization(value);
   };
 
-  const handleDoctorChange = (value: string) => {
-    setSelectedDoctor(value);
-    setSelectedSlot('');
-  };
+  useEffect(() => {
+    if (selectedDoctor && selectedDate) {
+      const doctorObj = doctors.find((d: any) => d.name === selectedDoctor || d.id === selectedDoctor);
+      if (doctorObj) {
+        fetchDoctorSlots(doctorObj.id, selectedDate);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDoctor, selectedDate]);
 
   const bookAppointment = async () => {
     if (!selectedDoctor || !selectedDate || !selectedSlot) {
       toast.error('Please select a doctor, date, and time slot');
       return;
     }
-
     try {
+      const doctorObj = doctors.find((d: any) => d.name === selectedDoctor || d.id === selectedDoctor);
+      if (!doctorObj) throw new Error('Doctor not found');
       const formattedDate = selectedDate.toISOString().split('T')[0];
-      
-      console.log('Booking appointment:', {
-        doctorId: selectedDoctor,
+      await axios.post('/user/bookAppointment', {
+        doctorId: doctorObj.id,
         date: formattedDate,
-        slot: selectedSlot
+        slot: selectedSlot,
       });
-      
-      const newAppointment = {
-        id: userAppointments.length + 1,
-        patientId: userData.id,
-        doctorId: doctors.find(d => d.name === selectedDoctor)?.id || 1,
-        date: formattedDate,
-        time: selectedSlot,
-        type: 'New Patient',
-        status: 'PENDING',
-        doctor: selectedDoctor,
-        department: selectedDepartment,
-      };
-      
-      setUserAppointments([...userAppointments, newAppointment]);
-      
       toast.success('Appointment booked successfully');
       setSelectedDepartment('');
       setSelectedDoctor('');
       setSelectedSlot('');
-      setActiveTab('appointments');
-    } catch (error) {
+      setSlots([]);
+      fetchAppointments();
+    } catch (error: any) {
       console.error('Error booking appointment:', error);
-      toast.error('Failed to book appointment. Please try again.');
+      toast.error(error.response?.data?.message || 'Failed to book appointment. Please try again.');
     }
   };
 
@@ -166,18 +148,13 @@ export default function Dashboard() {
       toast.error('Please select at least one symptom');
       return;
     }
-
     try {
-      const symptomKey = selectedSymptoms.slice(0, 4).sort().join(',');
-      
-      const results = predictionResults[symptomKey as keyof typeof predictionResults] || 
-                       predictionResults.default;
-      
-      setPredictions(results);
+      const response = await axios.post('/user/predict', { symptoms: selectedSymptoms });
+      setPredictions(response.data.predictions || []);
       toast.success('Disease prediction completed');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error predicting disease:', error);
-      toast.error('Failed to get disease prediction. Please try again.');
+      toast.error(error.response?.data?.message || 'Failed to get disease prediction. Please try again.');
     }
   };
 
@@ -226,6 +203,50 @@ export default function Dashboard() {
     
     return defaultSlots;
   };
+
+  useEffect(() => {
+    let currentPatient: any = null;
+    let patientIdForAppointments: number | string | null = null;
+
+    if (user && (user.role === 'patient' || user.role === 'user')) {
+      currentPatient = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        age: user.age ?? 30, 
+        gender: user.gender ?? 'male',
+        height: user.height ?? 175,
+        weight: user.weight ?? 70,
+        bmi: user.bmi ?? 24.5,
+        medicalHistory: user.medicalHistory ?? [],
+        lastVisit: user.lastVisit ?? '2024-03-01',
+        nextAppointment: user.nextAppointment ?? '2024-04-15'
+      };
+      patientIdForAppointments = user.id;
+    } else {
+      currentPatient = null;
+      patientIdForAppointments = null;
+    }
+
+    setUserData(currentPatient);
+
+    if (patientIdForAppointments) {
+      const patientAppointments = appointments.filter(
+        appointment => appointment.patientId === patientIdForAppointments
+      );
+      const appointmentsWithDoctors = patientAppointments.map(appointment => {
+        const doctor = doctors.find(d => d.id === appointment.doctorId);
+        return {
+          ...appointment,
+          doctor: doctor?.name || 'Unknown Doctor',
+          department: doctor?.specialization || 'General',
+        };
+      });
+      setUserAppointments(appointmentsWithDoctors);
+    } else {
+      setUserAppointments([]);
+    }
+  }, [user, appointments, doctors]);
 
   if (!userData) {
     return <div className="container py-8 text-center">Loading patient data...</div>;
@@ -430,9 +451,9 @@ export default function Dashboard() {
                     <SelectValue placeholder="Select department" />
                   </SelectTrigger>
                   <SelectContent>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.name}>
-                        {dept.name}
+                    {["Cardiology", "Neurology", "Orthopedics", "Gastroenterology", "Endocrinology"].map((dept) => (
+                      <SelectItem key={dept} value={dept}>
+                        {dept}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -442,18 +463,16 @@ export default function Dashboard() {
               {selectedDepartment && (
                 <div className="space-y-2">
                   <Label>Doctor</Label>
-                  <Select value={selectedDoctor} onValueChange={handleDoctorChange}>
+                  <Select value={selectedDoctor} onValueChange={setSelectedDoctor}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select doctor" />
                     </SelectTrigger>
                     <SelectContent>
-                      {departments
-                        .find((dept) => dept.name === selectedDepartment)
-                        ?.doctors.map((doctor) => (
-                          <SelectItem key={doctor} value={doctor}>
-                            {doctor}
-                          </SelectItem>
-                        ))}
+                      {doctors.map((doctor) => (
+                        <SelectItem key={doctor.id} value={doctor.name}>
+                          {doctor.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -513,7 +532,7 @@ export default function Dashboard() {
               <div className="space-y-2">
                 <Label>Select Your Symptoms</Label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-2">
-                  {allSymptoms.map((symptom) => (
+                  {symptoms.map((symptom) => (
                     <Button
                       key={symptom}
                       type="button"

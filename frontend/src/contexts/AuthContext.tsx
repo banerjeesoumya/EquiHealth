@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-// Import mock data
-import { patients, doctors, admins } from '../lib';
+import axios from '../lib/axios';
 
 interface User {
   id: string | number;
@@ -51,75 +50,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Check if user is logged in on mount
     const userJson = localStorage.getItem('user');
-    const role = localStorage.getItem('userRole');
-    if (userJson && role) {
+    const token = localStorage.getItem('token');
+    if (userJson && token) {
       try {
         const userData = JSON.parse(userJson);
-        setUser({
-          ...userData,
-          role: role as User['role']
-        });
+        setUser(userData);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       } catch (error) {
         localStorage.removeItem('user');
-        localStorage.removeItem('userRole');
+        localStorage.removeItem('token');
       }
     }
     setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string, role: User['role']) => {
-    // Mock authentication logic using our mock data
-    let userData = null;
-    
-    // Convert 'user' role to 'patient' for consistency with our data model
-    const dataRole = role === 'user' ? 'patient' : role;
-    
-    if (dataRole === 'patient') {
-      userData = patients.find(
-        patient => patient.email === email && patient.password === password
-      );
-    } else if (dataRole === 'doctor') {
-      const foundDoctor = doctors.find(
-        doctor => doctor.email === email && doctor.password === password
-      );
-      
-      if (foundDoctor) {
-        const slots: Record<string, string[]> = {};
-        if (foundDoctor.availableSlots) {
-          Object.entries(foundDoctor.availableSlots).forEach(([date, timeSlots]) => {
-            if (Array.isArray(timeSlots)) {
-              slots[date] = timeSlots;
-            }
-          });
-        }
-
-        userData = {
-          id: foundDoctor.id,
-          name: foundDoctor.name,
-          email: foundDoctor.email,
-          password: foundDoctor.password,
-          specialization: foundDoctor.specialization,
-          experience: foundDoctor.experience,
-          availableSlots: slots,
-          role: 'doctor'
-        };
-      }
-    } else if (dataRole === 'admin') {
-      userData = admins.find(
-        admin => admin.email === email && admin.password === password
-      );
+    try {
+      const backendRole = role === 'patient' ? 'user' : role;
+      const response = await axios.post(`/${backendRole}/signin`, { email, password });
+      console.log('LOGIN RESPONSE', response.data);
+      let userObj = null;
+      if (backendRole === 'doctor') userObj = response.data.doctor;
+      else if (backendRole === 'admin') userObj = response.data.admin;
+      else if (backendRole === 'user') userObj = response.data.user || response.data.data;
+      if (backendRole === 'user' && userObj) userObj.role = 'patient';
+      if (backendRole === 'doctor' && userObj) userObj.role = 'doctor';
+      if (backendRole === 'admin' && userObj) userObj.role = 'admin';
+      console.log('SETTING USER IN CONTEXT:', userObj);
+      localStorage.setItem('user', JSON.stringify(userObj));
+      localStorage.setItem('token', response.data.token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+      setUser(userObj);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Invalid email or password');
     }
-    
-    if (!userData) {
-      throw new Error('Invalid email or password');
-    }
-    
-    const { password: _, ...userWithoutPassword } = userData;
-    
-    localStorage.setItem('user', JSON.stringify(userWithoutPassword));
-    localStorage.setItem('userRole', dataRole);
-    
-    setUser({...userWithoutPassword, role: dataRole} as User);
   };
 
   const register = async (userData: {
@@ -133,43 +97,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     weight?: number;
     gender?: string;
   }) => {
-    
-    const { role, ...registrationData } = userData;
-    
-    const dataRole = role === 'user' ? 'patient' : role;
-    
-    if (dataRole === 'patient') {
-      if (!registrationData.age || !registrationData.height || !registrationData.weight || !registrationData.gender) {
-        throw new Error('All fields are required for patient registration');
-      }
-    } else if (dataRole === 'doctor') {
-      if (!registrationData.specialization) {
-        throw new Error('Specialization is required for doctor registration');
-      }
+    try {
+      const backendRole = userData.role === 'patient' ? 'user' : userData.role;
+      const { role, ...registrationData } = userData;
+      const response = await axios.post(`/${backendRole}/signup`, registrationData);
+      console.log('REGISTER RESPONSE', response.data);
+      let userObj = null;
+      if (backendRole === 'doctor') userObj = response.data.doctor;
+      else if (backendRole === 'admin') userObj = response.data.admin;
+      else if (backendRole === 'user') userObj = response.data.user || response.data.data;
+      if (backendRole === 'user' && userObj) userObj.role = 'patient';
+      if (backendRole === 'doctor' && userObj) userObj.role = 'doctor';
+      if (backendRole === 'admin' && userObj) userObj.role = 'admin';
+      console.log('SETTING USER IN CONTEXT:', userObj);
+      localStorage.setItem('user', JSON.stringify(userObj));
+      localStorage.setItem('token', response.data.token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+      setUser(userObj);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Registration failed');
     }
-    
-    const newUser = {
-      id: Date.now(), 
-      ...registrationData,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    const { password: _, ...userWithoutPassword } = newUser;
-    
-    localStorage.setItem('user', JSON.stringify(userWithoutPassword));
-    localStorage.setItem('userRole', dataRole);
-    
-    setUser({
-      ...userWithoutPassword,
-      role
-    } as User);
   };
 
   const logout = () => {
     localStorage.removeItem('user');
-    localStorage.removeItem('userRole');
+    localStorage.removeItem('token');
     setUser(null);
+    delete axios.defaults.headers.common['Authorization'];
   };
 
   return (

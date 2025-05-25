@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import { toast } from 'sonner';
 import { DatePicker } from '../../components/ui/date-picker';
 import { addDays } from 'date-fns';
-import { patients, doctors, appointments } from '../../lib';
+import axios from '../../lib/axios';
 
 const generateTimeSlots = () => {
   const slots = [];
@@ -38,44 +38,29 @@ export default function DoctorDashboard() {
   const [doctorData, setDoctorData] = useState<any>(null);
   const [filteredAppointments, setFilteredAppointments] = useState<any[]>([]);
   const [patientDetails, setPatientDetails] = useState<any[]>([]);
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [patients, setPatients] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const userRole = localStorage.getItem('userRole');
-    
-    if (user && userRole === 'doctor') {
-      setDoctorData({
-        id: user.id,
-        name: user.name,
-        email: user.email, 
-        specialization: user.specialization || 'Cardiology',
-        experience: user.experience || 10,
-        availableSlots: user.availableSlots || {}
-      });
-    } else {
-      setDoctorData(doctors[0]);
-    }
-    
-    const doctorId = user?.id || doctors[0].id;
-    
-    const doctorAppointments = appointments.filter(
-      appointment => appointment.doctorId === doctorId
-    );
-    
-    const appointmentsWithPatients = doctorAppointments.map(appointment => {
-      const patient = patients.find(p => p.id === appointment.patientId);
-      return {
-        ...appointment,
-        patient: patient?.name || 'Unknown Patient',
-      };
-    });
-    
-    setFilteredAppointments(appointmentsWithPatients);
-    
-    const doctorPatients = patients.filter(patient => 
-      doctorAppointments.some(appt => appt.patientId === patient.id)
-    );
-    
-    setPatientDetails(doctorPatients);
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Only fetch appointments, as /doctor/patients does not exist
+        const [appointmentsRes] = await Promise.all([
+          axios.get('/doctor/appointments'),
+        ]);
+        // setPatients([]); // No patients endpoint, so set to empty or handle accordingly
+        setAppointments(appointmentsRes.data.appointment || []);
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Failed to fetch data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, [user]);
 
   const toggleSlot = (slot: string) => {
