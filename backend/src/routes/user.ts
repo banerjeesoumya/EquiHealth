@@ -242,7 +242,7 @@ userRouter.put("/update", async (c) => {
 })
 
 
-userRouter.get("/getDoctorsBySpecialization", async (c) => {
+userRouter.post("/getDoctorsBySpecialization", async (c) => {
     const prisma = new PrismaClient({
         datasourceUrl: c.env.DATABASE_URL,
     }).$extends(withAccelerate());
