@@ -59,6 +59,7 @@ model DoctorAvailability {
   updatedAt DateTime  @updatedAt
 
   @@index([doctorId, date]) // Ensures fast queries but does NOT enforce uniqueness
+  @@unique([doctorId, date])
 }
 
 model Appointment {

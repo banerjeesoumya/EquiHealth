@@ -338,9 +338,14 @@ doctorRouter.delete("/availability", async (c) => {
         }
 
         console.log("✅ Doctor found. Checking existing availability...");
-
+        
         const existingAvailability = await prisma.doctorAvailability.findUnique({
-            where: { doctorId_date: { doctorId, date: inputDate } }
+            where: {
+                doctorId_date:{
+                    doctorId,
+                    date: inputDate
+                }
+            }
         }) as any;
 
         if (!existingAvailability) {
