@@ -38,13 +38,14 @@ export default function Dashboard() {
   const [slots, setSlots] = useState<any[]>([]);
   
   const departments = [
-    ...new Set(doctors.map(doctor => doctor.specialization))
-  ].map(specialization => ({
-    id: specialization.toLowerCase().replace(/\s+/g, '-'),
-    name: specialization,
-    doctors: doctors.filter(doctor => doctor.specialization === specialization)
-      .map(doctor => doctor.name)
-  }));
+  ...new Set(doctors.map(doctor => doctor.specialization).filter(Boolean))
+].map(specialization => ({
+  id: specialization.toLowerCase().replace(/\s+/g, '-'),
+  name: specialization,
+  doctors: doctors
+    .filter(doctor => doctor.specialization === specialization)
+    .map(doctor => doctor.name)
+}));
 
   const fetchAppointments = useCallback(async () => {
     try {
@@ -61,7 +62,7 @@ export default function Dashboard() {
 
   const fetchDoctorsBySpecialization = async (specialization: string) => {
     try {
-      const res = await axios.post('/user/getDoctorsBySpecialization', { body: { specialization } });
+      const res = await axios.post('/user/getDoctorsBySpecialization', { specialization });
       setDoctors(res.data.doctors || []);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch doctors');

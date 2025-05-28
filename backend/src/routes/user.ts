@@ -264,7 +264,8 @@ userRouter.post("/getDoctorsBySpecialization", async (c) => {
             },
             select: { 
                 id: true, 
-                name: true 
+                name: true ,
+                specialization: true
             }
         });
         
