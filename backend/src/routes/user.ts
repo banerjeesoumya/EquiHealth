@@ -268,12 +268,17 @@ userRouter.post("/getDoctorsBySpecialization", async (c) => {
                 specialization: true
             }
         });
-        
+        if (!doctors || doctors.length === 0) {
+            c.status(404);
+            return c.json({ message: "No doctors found for the given specialization" });
+        }
+
         c.status(200);
         return c.json({ 
             doctors: doctors.map((doctor) => ({
                 id: doctor.id,
-                name: doctor.name
+                name: doctor.name,
+                specialization: doctor.specialization
             })) 
         });
     } catch (e) {
@@ -329,6 +334,7 @@ userRouter.post("/bookAppointment", async (c) => {
     }).$extends(withAccelerate());
 
     const userId = c.get("userId");
+    console.log("User ID:", userId);
     const body = await c.req.json();
     const correctAppointmentBody = appointmentSchema.safeParse(body);
 
@@ -355,7 +361,8 @@ userRouter.post("/bookAppointment", async (c) => {
             });
         }
 
-        const selectedSlot = correctAppointmentBody.data.slot.replace(/\s?(AM|PM)/, "");  
+        const selectedSlot = correctAppointmentBody.data.slot.replace(/\s?(AM|PM)/, "");
+        console.log("Selected Slot:", selectedSlot);  
 
         const slotExists = doctorAvailability.slots.some(slot => 
             typeof slot === 'object' && slot !== null && 'start' in slot && slot.start === selectedSlot
@@ -386,6 +393,7 @@ userRouter.post("/bookAppointment", async (c) => {
         return c.json({ message: "Internal Server Error" });
     }
 });
+
 userRouter.get("/getAppointments", async (c) => {
     const prisma = new PrismaClient({
         datasourceUrl: c.env.DATABASE_URL,

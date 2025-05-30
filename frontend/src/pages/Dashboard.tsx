@@ -111,7 +111,7 @@ export default function Dashboard() {
       await axios.post('/user/bookAppointment', {
         doctorId: doctorObj.id,
         date: formattedDate,
-        slot: selectedSlot,
+        slot: selectedSlot.replace(/\s?(AM|PM)/, ""),
       });
       toast.success('Appointment booked successfully');
       setSelectedDepartment('');

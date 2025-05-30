@@ -424,24 +424,52 @@ doctorRouter.get("/availability", async (c) => {
 
 
 doctorRouter.get("/appointments", async (c) => {
-    const prisma = new PrismaClient({ datasourceUrl: c.env.DATABASE_URL }).$extends(withAccelerate());
-    const doctorId = c.get("doctorId");
+  const prisma = new PrismaClient({ datasourceUrl: c.env.DATABASE_URL }).$extends(withAccelerate());
+  const doctorId = c.get("doctorId");
 
-    try {
-        const appointments = await prisma.appointment.findMany({ where: { doctorId } });
-        c.status(200);
-        return c.json ({
-            message: "Appointments retrieved succesfully",
-            appointment: appointments.map((appointment) => ({
-                id: appointment.id,
-                stat: appointment.status,
-            }))
-        })
-    } catch (e) {
-        c.status(500);
-        return c.json({ message: "Internal Server Error" });
+  try {
+    const appointments = await prisma.appointment.findMany({
+      where: { doctorId },
+      select: {
+        id: true,
+        status: true,
+        date: true,
+        slot: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    if (!appointments.length) {
+      c.status(404);
+      return c.json({ message: "No appointments found for this doctor." });
     }
+
+    const response = appointments.map((appointment) => ({
+      id: appointment.id,
+      status: appointment.status,
+      date: appointment.date.toISOString().split("T")[0],
+      slot: appointment.slot,
+      patient: appointment.user.name
+    }));
+
+    c.status(200);
+    return c.json({
+      message: "Appointments retrieved successfully",
+      appointments: response
+    });
+  } catch (e) {
+    console.error("❌ Error:", e);
+    c.status(500);
+    return c.json({ message: "Internal Server Error" });
+  }
 });
+
 
 doctorRouter.patch("/appointments/update-status", async (c) => {
     const prisma = new PrismaClient({

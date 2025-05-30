@@ -44,24 +44,33 @@ export default function DoctorDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // Only fetch appointments, as /doctor/patients does not exist
-        const [appointmentsRes] = await Promise.all([
-          axios.get('/doctor/appointments'),
-        ]);
-        // setPatients([]); // No patients endpoint, so set to empty or handle accordingly
-        setAppointments(appointmentsRes.data.appointment || []);
-      } catch (err: any) {
-        setError(err.response?.data?.message || 'Failed to fetch data');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [user]);
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await axios.get('/doctor/appointments');
+      const appointmentsRaw = res.data.appointments || [];
+
+      const normalized = appointmentsRaw.map((a: any) => ({
+        id: a.id,
+        status: a.status,
+        patient: a.patient,
+        date: a.date,
+        time: a.slot
+      }));
+
+      setAppointments(normalized);
+      setFilteredAppointments(normalized);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to fetch data');
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchData();
+}, [user]);
+
+
 
   const toggleSlot = (slot: string) => {
     if (selectedSlots.includes(slot)) {
@@ -72,98 +81,91 @@ export default function DoctorDashboard() {
   };
 
   const saveAvailability = async () => {
-    if (!selectedDate || selectedSlots.length === 0) {
-      toast.error('Please select a date and at least one time slot');
-      return;
+  if (!selectedDate || selectedSlots.length === 0) {
+    toast.error('Please select a date and at least one time slot');
+    return;
+  }
+
+  const formattedDate = selectedDate.toISOString().split('T')[0];
+  const formattedSlots = selectedSlots.map(slot => {
+    const [time, period] = slot.split(' ');
+    const [hour, minute] = time.split(':');
+    let hourNum = parseInt(hour);
+
+    if (period === 'PM' && hourNum !== 12) hourNum += 12;
+    else if (period === 'AM' && hourNum === 12) hourNum = 0;
+
+    const startTime = `${hourNum.toString().padStart(2, '0')}:${minute}`;
+
+    let endHourNum = hourNum;
+    let endMinute = parseInt(minute);
+
+    if (endMinute === 30) {
+      endHourNum += 1;
+      endMinute = 0;
+    } else {
+      endMinute = 30;
     }
 
-    try {
-      const formattedDate = selectedDate.toISOString().split('T')[0];
-      const formattedSlots = selectedSlots.map(slot => {
-        const [time, period] = slot.split(' ');
-        const [hour, minute] = time.split(':');
-        let hourNum = parseInt(hour);
-        
-        if (period === 'PM' && hourNum !== 12) {
-          hourNum += 12;
-        } else if (period === 'AM' && hourNum === 12) {
-          hourNum = 0;
-        }
-        
-        const startTime = `${hourNum.toString().padStart(2, '0')}:${minute}`;
-        
-        let endHourNum = hourNum;
-        let endMinute = parseInt(minute);
-        
-        if (endMinute === 30) {
-          endHourNum += 1;
-          endMinute = 0;
-        } else {
-          endMinute = 30;
-        }
-        
-        if (endHourNum === 24) {
-          endHourNum = 0;
-        }
-        
-        const endTime = `${endHourNum.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
-        
-        return {
-          start: startTime,
-          end: endTime
-        };
-      });
+    if (endHourNum === 24) endHourNum = 0;
 
-      console.log('Saving availability:', {
-        date: formattedDate,
-        slots: formattedSlots
+    const endTime = `${endHourNum.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+
+    return { start: startTime, end: endTime };
+  });
+
+  try {
+    await axios.post('/doctor/availability', {
+      date: formattedDate,
+      slots: formattedSlots
+    });
+
+    toast.success('Availability saved successfully');
+
+    if (doctorData) {
+      setDoctorData({
+        ...doctorData,
+        availableSlots: {
+          ...doctorData.availableSlots,
+          [formattedDate]: selectedSlots
+        }
       });
-      
-      toast.success('Availability saved successfully');
-      
-      if (doctorData) {
-        setDoctorData({
-          ...doctorData,
-          availableSlots: {
-            ...doctorData.availableSlots,
-            [formattedDate]: selectedSlots
-          }
-        });
-      }
-      
-      setSelectedSlots([]);
-    } catch (error) {
-      console.error('Error saving availability:', error);
-      toast.error('Failed to save availability. Please try again.');
     }
-  };
+
+    setSelectedSlots([]);
+  } catch (error) {
+    console.error('Error saving availability:', error);
+    toast.error('Failed to save availability. Please try again.');
+  }
+};
+
 
   const updateAppointmentStatus = async (appointmentId: number, newStatus: string) => {
-    try {
-      console.log('Updating appointment status:', {
-        appointmentId,
-        status: newStatus
-      });
-      
-      setFilteredAppointments(prevAppointments => 
-        prevAppointments.map(appointment => 
-          appointment.id === appointmentId 
-            ? { ...appointment, status: newStatus } 
-            : appointment
-        )
-      );
-      
-      setAppointmentStatus({
-        ...appointmentStatus,
-        [appointmentId]: newStatus
-      });
-      
-      toast.success(`Appointment status updated to ${newStatus}`);
-    } catch (error) {
-      console.error('Error updating appointment status:', error);
-      toast.error('Failed to update appointment status. Please try again.');
-    }
-  };
+  try {
+    await axios.patch('/doctor/appointments/update-status', {
+      appointmentId: String(appointmentId),
+      stat: newStatus
+    });
+
+    setFilteredAppointments(prevAppointments =>
+      prevAppointments.map(appointment =>
+        appointment.id === appointmentId
+          ? { ...appointment, status: newStatus }
+          : appointment
+      )
+    );
+
+    setAppointmentStatus({
+      ...appointmentStatus,
+      [appointmentId]: newStatus
+    });
+
+    toast.success(`Appointment status updated to ${newStatus}`);
+  } catch (error) {
+    console.error('Error updating appointment status:', error);
+    toast.error('Failed to update appointment status. Please try again.');
+  }
+};
 
   return (
     <div className="container py-8 space-y-8">
