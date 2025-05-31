@@ -11,6 +11,11 @@ import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { DatePicker } from '../components/ui/date-picker';
 import axios from '../lib/axios';
+import Overview from '../components/dashboard/Overview';
+import Profile from '../components/dashboard/Profile';
+import BookAppointment from '../components/dashboard/BookAppointment';
+import DiseasePrediction from '../components/dashboard/DiseasePrediction';
+import Appointments from '@/components/dashboard/Appointments';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -254,438 +259,61 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="container py-8 space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto py-6">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Welcome back, {userData?.name?.split(' ')[0]}</h1>
-          <p className="text-muted-foreground">Track your health and manage appointments</p>
+          <h1 className="text-3xl font-bold tracking-tight">Welcome back, {user?.name || "User"}</h1>
+          <p className="text-muted-foreground text-lg">Track your health and manage appointments</p>
         </div>
-        <Button onClick={() => setShowChatbot(!showChatbot)}>
-          <MessageSquare className="mr-2 h-4 w-4" />
-          {showChatbot ? 'Close Chat' : 'Health Assistant'}
+        <Button
+          className="h-12 px-6 text-base font-semibold"
+          variant="default"
+        >
+          <MessageSquare className="mr-2 h-5 w-5" />
+          Health Assistant
         </Button>
       </div>
-
-      <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="appointments">My Appointments</TabsTrigger>
-          <TabsTrigger value="book">Book Appointment</TabsTrigger>
-          <TabsTrigger value="predict">Disease Prediction</TabsTrigger>
+      {/* Tabs Section */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="w-full flex bg-muted rounded-xl p-1 mb-6">
+          <TabsTrigger value="overview" className="flex-1 data-[state=active]:bg-background data-[state=active]:font-bold data-[state=active]:shadow-sm rounded-lg transition-colors">
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="profile" className="flex-1 data-[state=active]:bg-background data-[state=active]:font-bold data-[state=active]:shadow-sm rounded-lg transition-colors">
+            Profile
+          </TabsTrigger>
+          <TabsTrigger value="appointments" className="flex-1 data-[state=active]:bg-background data-[state=active]:font-bold data-[state=active]:shadow-sm rounded-lg transition-colors">
+            My Appointments
+          </TabsTrigger>
+          <TabsTrigger value="book" className="flex-1 data-[state=active]:bg-background data-[state=active]:font-bold data-[state=active]:shadow-sm rounded-lg transition-colors">
+            Book Appointment
+          </TabsTrigger>
+          <TabsTrigger value="predict" className="flex-1 data-[state=active]:bg-background data-[state=active]:font-bold data-[state=active]:shadow-sm rounded-lg transition-colors">
+            Disease Prediction
+          </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="overview" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">BMI</CardTitle>
-                <Scale className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{userData?.bmi}</div>
-                <p className="text-xs text-muted-foreground">Normal weight</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Heart Rate</CardTitle>
-                <Heart className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">72 BPM</div>
-                <p className="text-xs text-muted-foreground">Last checked 2h ago</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Daily Steps</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">8,246</div>
-                <p className="text-xs text-muted-foreground">Goal: 10,000</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Calories</CardTitle>
-                <Utensils className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">1,892</div>
-                <p className="text-xs text-muted-foreground">Goal: 2,000</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-                <CardDescription>Manage your health quickly</CardDescription>
-              </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-4">
-                <Button onClick={() => setActiveTab("book")} className="h-24 flex flex-col items-center justify-center space-y-2">
-                  <Calendar className="h-6 w-6" />
-                  <span>Book Appointment</span>
-                </Button>
-                <Button onClick={() => setActiveTab("predict")} variant="outline" className="h-24 flex flex-col items-center justify-center space-y-2">
-                  <Stethoscope className="h-6 w-6" />
-                  <span>Check Symptoms</span>
-                </Button>
-                <Button onClick={() => setShowChatbot(true)} variant="outline" className="h-24 flex flex-col items-center justify-center space-y-2">
-                  <MessageSquare className="h-6 w-6" />
-                  <span>Ask Health Assistant</span>
-                </Button>
-                <Button variant="outline" className="h-24 flex flex-col items-center justify-center space-y-2">
-                  <Activity className="h-6 w-6" />
-                  <span>Track Vitals</span>
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Upcoming Appointments</CardTitle>
-                <CardDescription>Your scheduled consultations</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {userAppointments.filter(a => a.status === 'PENDING' || a.status === 'CONFIRMED').length > 0 ? (
-                    userAppointments
-                      .filter(a => a.status === 'PENDING' || a.status === 'CONFIRMED')
-                      .map((appointment) => (
-                        <div
-                          key={appointment.id}
-                          className="flex items-center justify-between p-4 border rounded-lg"
-                        >
-                          <div className="space-y-1">
-                            <p className="font-medium">{appointment.doctor}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {appointment.department}
-                            </p>
-                            <div className="flex items-center text-sm text-muted-foreground">
-                              <Calendar className="mr-1 h-4 w-4" />
-                              {appointment.date} at {appointment.time}
-                            </div>
-                          </div>
-                          <Button>Join Call</Button>
-                        </div>
-                      ))
-                  ) : (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">No upcoming appointments</p>
-                      <Button onClick={() => setActiveTab("book")} variant="outline" className="mt-4">
-                        Book an Appointment
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <Overview />
         </TabsContent>
-        
+
+        <TabsContent value="profile" className="space-y-4">
+          <Profile />
+        </TabsContent>
+
         <TabsContent value="appointments" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>All Appointments</CardTitle>
-              <CardDescription>View your appointment history</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {userAppointments.length > 0 ? (
-                <div className="space-y-4">
-                  {userAppointments.map((appointment) => (
-                    <div
-                      key={appointment.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div className="space-y-1">
-                        <p className="font-medium">{appointment.doctor}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {appointment.department}
-                        </p>
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Calendar className="mr-1 h-4 w-4" />
-                          {appointment.date} at {appointment.time}
-                        </div>
-                      </div>
-                      <div>
-                        <Button 
-                          variant={
-                            appointment.status === 'PENDING' || appointment.status === 'CONFIRMED' 
-                              ? 'default' 
-                              : 'secondary'
-                          }
-                        >
-                          {appointment.status === 'PENDING' || appointment.status === 'CONFIRMED' 
-                            ? 'Join Call' 
-                            : 'View Summary'}
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">You don't have any appointments yet</p>
-                  <Button onClick={() => setActiveTab("book")} className="mt-4">
-                    Book Your First Appointment
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <Appointments />
         </TabsContent>
-        
+
         <TabsContent value="book" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Book Appointment</CardTitle>
-              <CardDescription>Schedule a consultation with our specialists</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Department</Label>
-                <Select value={selectedDepartment} onValueChange={handleDepartmentChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {["Cardiology", "Neurology", "Orthopedics", "Gastroenterology", "Endocrinology"].map((dept) => (
-                      <SelectItem key={dept} value={dept}>
-                        {dept}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {selectedDepartment && (
-                <div className="space-y-2">
-                  <Label>Doctor</Label>
-                  <Select value={selectedDoctor} onValueChange={setSelectedDoctor}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select doctor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {doctors.map((doctor) => (
-                        <SelectItem key={doctor.id} value={doctor.name}>
-                          {doctor.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              
-              {selectedDoctor && (
-                <>
-                  <div className="space-y-2">
-                    <Label>Date</Label>
-                    <DatePicker
-                      selected={selectedDate}
-                      onSelect={setSelectedDate}
-                      disabled={(date: Date) => date < new Date() || date > addDays(new Date(), 30)}
-                      className="w-full"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Available Time Slots</Label>
-                    <div className="grid grid-cols-3 gap-2 mt-2">
-                      {getAvailableSlots().map((slot) => (
-                        <Button
-                          key={slot}
-                          type="button"
-                          variant={selectedSlot === slot ? "default" : "outline"}
-                          className="flex items-center justify-center"
-                          onClick={() => setSelectedSlot(slot)}
-                        >
-                          <Clock className="mr-2 h-4 w-4" />
-                          <span>{slot}</span>
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </CardContent>
-            <CardFooter>
-              <Button 
-                className="w-full" 
-                onClick={bookAppointment}
-                disabled={!selectedDoctor || !selectedDate || !selectedSlot}
-              >
-                Book Appointment
-              </Button>
-            </CardFooter>
-          </Card>
+          <BookAppointment />
         </TabsContent>
-        
+
         <TabsContent value="predict" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Disease Prediction</CardTitle>
-              <CardDescription>Input your symptoms for an initial assessment</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Select Your Symptoms</Label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-2">
-                  {symptoms.map((symptom) => (
-                    <Button
-                      key={symptom}
-                      type="button"
-                      variant={selectedSymptoms.includes(symptom) ? "default" : "outline"}
-                      size="sm"
-                      className="justify-start"
-                      onClick={() => toggleSymptom(symptom)}
-                    >
-                      {selectedSymptoms.includes(symptom) ? (
-                        <span className="mr-2">✓</span>
-                      ) : null}
-                      {symptom}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="flex space-x-2">
-                <Input
-                  placeholder="Add other symptom"
-                  value={symptomsInput}
-                  onChange={handleSymptomInput}
-                />
-                <Button type="button" onClick={addCustomSymptom}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              
-              {selectedSymptoms.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Selected Symptoms</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedSymptoms.map((symptom) => (
-                      <div 
-                        key={symptom}
-                        className="bg-secondary text-secondary-foreground px-3 py-1 rounded-full flex items-center"
-                      >
-                        {symptom}
-                        <button 
-                          className="ml-2 text-secondary-foreground/70 hover:text-secondary-foreground"
-                          onClick={() => toggleSymptom(symptom)}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter>
-              <Button 
-                className="w-full" 
-                onClick={predictDisease}
-                disabled={selectedSymptoms.length === 0}
-              >
-                Predict Disease
-              </Button>
-            </CardFooter>
-          </Card>
-          
-          {predictions.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Prediction Results</CardTitle>
-                <CardDescription>Based on your symptoms, these are the possible conditions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {predictions.map((result, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <h3 className="font-medium">{result.disease}</h3>
-                        <span className="text-sm">
-                          {Math.round(result.probability * 100)}% match
-                        </span>
-                      </div>
-                      <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
-                        <div 
-                          className="bg-primary h-full"
-                          style={{ width: `${result.probability * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="mt-6 p-4 bg-muted rounded-lg">
-                  <p className="text-sm font-medium mb-2">Important Note:</p>
-                  <p className="text-sm text-muted-foreground">
-                    This prediction is based on machine learning algorithms and is not a definitive diagnosis. 
-                    Please consult a healthcare professional for proper medical advice.
-                  </p>
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <Button variant="outline" onClick={() => setPredictions([])}>
-                  Clear Results
-                </Button>
-                <Button onClick={() => setActiveTab("book")}>
-                  Book Doctor Appointment
-                </Button>
-              </CardFooter>
-            </Card>
-          )}
+          <DiseasePrediction />
         </TabsContent>
       </Tabs>
-      
-      {showChatbot && (
-        <div className="fixed bottom-4 right-4 w-80 md:w-96 bg-background border rounded-lg shadow-lg flex flex-col z-50">
-          <div className="p-3 border-b flex items-center justify-between">
-            <h3 className="font-medium">Health Assistant</h3>
-            <Button variant="ghost" size="sm" onClick={() => setShowChatbot(false)}>
-              ✕
-            </Button>
-          </div>
-          
-          <div className="flex-1 p-4 overflow-y-auto h-80 space-y-4">
-            {chatHistory.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Ask me anything about your health!</p>
-              </div>
-            ) : (
-              chatHistory.map((chat, index) => (
-                <div key={index} className={`flex ${chat.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div 
-                    className={`max-w-[80%] p-3 rounded-lg ${
-                      chat.sender === 'user' 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-muted'
-                    }`}
-                  >
-                    {chat.message}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-          
-          <div className="p-3 border-t flex items-center space-x-2">
-            <Input 
-              placeholder="Type your message..." 
-              value={chatMessage}
-              onChange={(e) => setChatMessage(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-            />
-            <Button size="sm" onClick={sendMessage}>
-              Send
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 } 
