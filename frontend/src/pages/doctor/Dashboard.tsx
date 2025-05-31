@@ -43,14 +43,12 @@ export default function DoctorDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await axios.get('/doctor/appointments');
       const appointmentsRaw = res.data.appointments || [];
-
       const normalized = appointmentsRaw.map((a: any) => ({
         id: a.id,
         status: a.status,
@@ -58,7 +56,6 @@ export default function DoctorDashboard() {
         date: a.date,
         time: a.slot
       }));
-
       setAppointments(normalized);
       setFilteredAppointments(normalized);
     } catch (err: any) {
@@ -67,10 +64,10 @@ export default function DoctorDashboard() {
       setLoading(false);
     }
   };
-  fetchData();
-}, [user]);
 
-
+  useEffect(() => {
+    fetchData();
+  }, [user]);
 
   const toggleSlot = (slot: string) => {
     if (selectedSlots.includes(slot)) {
@@ -81,91 +78,90 @@ export default function DoctorDashboard() {
   };
 
   const saveAvailability = async () => {
-  if (!selectedDate || selectedSlots.length === 0) {
-    toast.error('Please select a date and at least one time slot');
-    return;
-  }
-
-  const formattedDate = selectedDate.toISOString().split('T')[0];
-  const formattedSlots = selectedSlots.map(slot => {
-    const [time, period] = slot.split(' ');
-    const [hour, minute] = time.split(':');
-    let hourNum = parseInt(hour);
-
-    if (period === 'PM' && hourNum !== 12) hourNum += 12;
-    else if (period === 'AM' && hourNum === 12) hourNum = 0;
-
-    const startTime = `${hourNum.toString().padStart(2, '0')}:${minute}`;
-
-    let endHourNum = hourNum;
-    let endMinute = parseInt(minute);
-
-    if (endMinute === 30) {
-      endHourNum += 1;
-      endMinute = 0;
-    } else {
-      endMinute = 30;
+    if (!selectedDate || selectedSlots.length === 0) {
+      toast.error('Please select a date and at least one time slot');
+      return;
     }
 
-    if (endHourNum === 24) endHourNum = 0;
+    const formattedDate = selectedDate.toISOString().split('T')[0];
+    const formattedSlots = selectedSlots.map(slot => {
+      const [time, period] = slot.split(' ');
+      const [hour, minute] = time.split(':');
+      let hourNum = parseInt(hour);
 
-    const endTime = `${endHourNum.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+      if (period === 'PM' && hourNum !== 12) hourNum += 12;
+      else if (period === 'AM' && hourNum === 12) hourNum = 0;
 
-    return { start: startTime, end: endTime };
-  });
+      const startTime = `${hourNum.toString().padStart(2, '0')}:${minute}`;
 
-  try {
-    await axios.post('/doctor/availability', {
-      date: formattedDate,
-      slots: formattedSlots
+      let endHourNum = hourNum;
+      let endMinute = parseInt(minute);
+
+      if (endMinute === 30) {
+        endHourNum += 1;
+        endMinute = 0;
+      } else {
+        endMinute = 30;
+      }
+
+      if (endHourNum === 24) endHourNum = 0;
+
+      const endTime = `${endHourNum.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+
+      return { start: startTime, end: endTime };
     });
 
-    toast.success('Availability saved successfully');
-
-    if (doctorData) {
-      setDoctorData({
-        ...doctorData,
-        availableSlots: {
-          ...doctorData.availableSlots,
-          [formattedDate]: selectedSlots
-        }
+    try {
+      await axios.post('/doctor/availability', {
+        date: formattedDate,
+        slots: formattedSlots
       });
+
+      toast.success('Availability saved successfully');
+
+      if (doctorData) {
+        setDoctorData({
+          ...doctorData,
+          availableSlots: {
+            ...doctorData.availableSlots,
+            [formattedDate]: selectedSlots
+          }
+        });
+      }
+
+      setSelectedSlots([]);
+    } catch (error) {
+      console.error('Error saving availability:', error);
+      toast.error('Failed to save availability. Please try again.');
     }
-
-    setSelectedSlots([]);
-  } catch (error) {
-    console.error('Error saving availability:', error);
-    toast.error('Failed to save availability. Please try again.');
-  }
-};
-
+  };
 
   const updateAppointmentStatus = async (appointmentId: number, newStatus: string) => {
-  try {
-    await axios.patch('/doctor/appointments/update-status', {
-      appointmentId: String(appointmentId),
-      stat: newStatus
-    });
+    try {
+      await axios.patch('/doctor/appointments/update-status', {
+        appointmentId: String(appointmentId),
+        stat: newStatus
+      });
 
-    setFilteredAppointments(prevAppointments =>
-      prevAppointments.map(appointment =>
-        appointment.id === appointmentId
-          ? { ...appointment, status: newStatus }
-          : appointment
-      )
-    );
+      setFilteredAppointments(prevAppointments =>
+        prevAppointments.map(appointment =>
+          appointment.id === appointmentId
+            ? { ...appointment, status: newStatus }
+            : appointment
+        )
+      );
 
-    setAppointmentStatus({
-      ...appointmentStatus,
-      [appointmentId]: newStatus
-    });
+      setAppointmentStatus({
+        ...appointmentStatus,
+        [appointmentId]: newStatus
+      });
 
-    toast.success(`Appointment status updated to ${newStatus}`);
-  } catch (error) {
-    console.error('Error updating appointment status:', error);
-    toast.error('Failed to update appointment status. Please try again.');
-  }
-};
+      toast.success(`Appointment status updated to ${newStatus}`);
+    } catch (error) {
+      console.error('Error updating appointment status:', error);
+      toast.error('Failed to update appointment status. Please try again.');
+    }
+  };
 
   return (
     <div className="container py-8 space-y-8">
@@ -280,9 +276,14 @@ export default function DoctorDashboard() {
         
         <TabsContent value="appointments" className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Manage Appointments</CardTitle>
-              <CardDescription>View and update your appointment statuses</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Manage Appointments</CardTitle>
+                <CardDescription>View and update your appointment statuses</CardDescription>
+              </div>
+              <Button variant="outline" onClick={fetchData}>
+                Refresh
+              </Button>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">

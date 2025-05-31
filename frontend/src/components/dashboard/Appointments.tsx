@@ -40,9 +40,14 @@ export default function Appointments() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>All Appointments</CardTitle>
-        <CardDescription>View your appointment history</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>All Appointments</CardTitle>
+          <CardDescription>View your appointment history</CardDescription>
+        </div>
+        <Button variant="outline" onClick={fetchAppointments}>
+          Refresh
+        </Button>
       </CardHeader>
       <CardContent>
         {appointments.length > 0 ? (

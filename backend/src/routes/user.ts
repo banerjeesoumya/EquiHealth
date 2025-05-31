@@ -466,70 +466,106 @@ userRouter.post("/predictDisease", async (c) => {
     }
   });
 
+// userRouter.post("/chat-support", async (c) => {
+//     const openai = new OpenAI({
+//         apiKey: c.env.OPENROUTER_API_KEY,
+//         baseURL: c.env.OPENROUTER_BASE_URL
+//     })
+//     const body = await c.req.json();
+//     console.log(body)
+//     const validation = chatSupportSchema.safeParse(body);
+//      if (!validation.success) {
+//         const errors = validation.error.errors.map(e => e.message);
+//         c.status(400);
+//         return c.json({ 
+//             message: errors 
+//         });
+//     }
+//     try {
+//         const reply = await getReply(body.message);
+//         c.status(200);
+//         return c.json({
+//             message: "AI response received",
+//             reply: reply
+//         })
+//     } catch (error : any) {
+//         console.error("Error:", error);
+//         c.status(500);
+//         return c.json({
+//             message: "Error while getting AI response",
+//             error: error.message
+//         })
+//     }
+//     async function getReply(message: string) {
+//         try {
+//             const response = await openai.chat.completions.create({
+//                 model: "google/gemma-3-27b-it:free",
+//                 messages: [
+//                     {
+//                         role: "system",
+//                         content: `You are an AI-powered healthcare assistant for the platform "Equihealth". Your role is to assist users with general health-related queries in a friendly and informative manner.
+    
+//                         Guidelines to follow:
+//                         - Begin by greeting the user and briefly introducing Equihealth.
+//                         - Mention core features available to users:
+//                         • Symptom-based disease prediction tool
+//                         • Appointment booking system with certified doctors
+//                         • Chat support for general health queries
+//                         • Access to AI-generated health tips
+//                         - Never diagnose diseases directly.
+//                         - If the user describes symptoms, suggest using the Disease Prediction feature for better assessment.
+//                         - Always recommend consulting a doctor when the issue seems serious or uncertain.
+//                         - Keep your responses concise, clear, and user-friendly.
+//                         - Use a tone that is empathetic and respectful to all users.
+//                         - If there is a very specific request from the user, then just focus on that and give a concise and well-thought and structure answer and don't give any other information.`
+//                     },
+//                     {
+//                         role: "user",
+//                         content: message
+//                     }
+//                 ]
+//             });
+//             return response.choices[0].message.content;
+//         } catch (err) {
+//             console.error("Error:", err);
+//             throw new Error("AI Service Failed");
+//         }
+//     }
+// })  
+  
 userRouter.post("/chat-support", async (c) => {
     const openai = new OpenAI({
         apiKey: c.env.OPENROUTER_API_KEY,
         baseURL: c.env.OPENROUTER_BASE_URL
-    })
+    });
     const body = await c.req.json();
-    console.log(body)
-    const validation = chatSupportSchema.safeParse(body);
-     if (!validation.success) {
-        const errors = validation.error.errors.map(e => e.message);
+
+    // Expecting: { messages: [{role: 'system'|'user'|'assistant', content: string}, ...] }
+    const { messages } = body;
+    if (!Array.isArray(messages) || messages.length === 0) {
         c.status(400);
-        return c.json({ 
-            message: errors 
-        });
+        return c.json({ message: "Invalid messages array" });
     }
+
     try {
-        const reply = await getReply(body.message);
+        const response = await openai.chat.completions.create({
+            model: "google/gemma-3-27b-it:free",
+            messages: messages,
+        });
+
+        // Extract the assistant's reply
+        const reply = response.choices?.[0]?.message?.content || "Sorry, I could not generate a response.";
         c.status(200);
         return c.json({
-            message: "AI response received",
-            reply: reply
-        })
-    } catch (error : any) {
+            reply
+        });
+    } catch (error: any) {
         console.error("Error:", error);
         c.status(500);
         return c.json({
             message: "Error while getting AI response",
             error: error.message
-        })
+        });
     }
-    async function getReply(message: string) {
-        try {
-            const response = await openai.chat.completions.create({
-                model: "google/gemini-2.0-flash-thinking-exp:free",
-                messages: [
-                    {
-                        role: "system",
-                        content: `You are an AI-powered healthcare assistant for the platform "Equihealth". Your role is to assist users with general health-related queries in a friendly and informative manner.
-    
-                        Guidelines to follow:
-                        - Begin by greeting the user and briefly introducing Equihealth.
-                        - Mention core features available to users:
-                        • Symptom-based disease prediction tool
-                        • Appointment booking system with certified doctors
-                        • Chat support for general health queries
-                        • Access to AI-generated health tips
-                        - Never diagnose diseases directly.
-                        - If the user describes symptoms, suggest using the Disease Prediction feature for better assessment.
-                        - Always recommend consulting a doctor when the issue seems serious or uncertain.
-                        - Keep your responses concise, clear, and user-friendly.
-                        - Use a tone that is empathetic and respectful to all users.`
-                    },
-                    {
-                        role: "user",
-                        content: message
-                    }
-                ]
-            });
-            return response.choices[0].message.content;
-        } catch (err) {
-            console.error("Error:", err);
-            throw new Error("AI Service Failed");
-        }
-    }
-})  
-  
+});
   

@@ -16,6 +16,7 @@ import Profile from '../components/dashboard/Profile';
 import BookAppointment from '../components/dashboard/BookAppointment';
 import DiseasePrediction from '../components/dashboard/DiseasePrediction';
 import Appointments from '@/components/dashboard/Appointments';
+import HealthAssistantChat from '../components/dashboard/HealthAssistantChat';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -41,6 +42,7 @@ export default function Dashboard() {
   const [specializations, setSpecializations] = useState<string[]>(["Cardiology", "Neurology", "Orthopedics", "Gastroenterology", "Endocrinology"]);
   const [selectedSpecialization, setSelectedSpecialization] = useState('');
   const [slots, setSlots] = useState<any[]>([]);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   
   const departments = [
   ...new Set(doctors.map(doctor => doctor.specialization).filter(Boolean))
@@ -269,6 +271,7 @@ export default function Dashboard() {
         <Button
           className="h-12 px-6 text-base font-semibold"
           variant="default"
+          onClick={() => setIsChatOpen(true)}
         >
           <MessageSquare className="mr-2 h-5 w-5" />
           Health Assistant
@@ -314,6 +317,7 @@ export default function Dashboard() {
           <DiseasePrediction />
         </TabsContent>
       </Tabs>
+      <HealthAssistantChat open={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </div>
   );
 } 
