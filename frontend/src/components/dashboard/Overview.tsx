@@ -1,12 +1,17 @@
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Activity, Calendar, Heart, Scale, Plus, Clock, MessageSquare, Stethoscope } from 'lucide-react';
+import { Activity, Calendar, Heart, Scale, Stethoscope, MessageSquare, Flame } from 'lucide-react';
 import { Button } from '../ui/button';
 
 export default function Overview() {
   const { user } = useAuth();
 
   if (!user) return <div>Loading...</div>;
+
+  // Mocked Google Fit data on user object for demo
+  const heartRate = (user as any).heartRate ?? 72; // bpm
+  const dailySteps = (user as any).dailySteps ?? 8500;
+  const caloriesBurned = (user as any).caloriesBurned ?? 2200; // kcal
 
   return (
     <div className="space-y-4">
@@ -23,50 +28,42 @@ export default function Overview() {
             </p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Next Appointment</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {user.nextAppointment ? new Date(user.nextAppointment).toLocaleDateString() : 'No upcoming'}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {user.nextAppointment ? 'Scheduled' : 'No appointments scheduled'}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Health Status</CardTitle>
+            <CardTitle className="text-sm font-medium">Heart Rate</CardTitle>
             <Heart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {user.medicalHistory?.length ? 'Active' : 'Good'}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {user.medicalHistory?.length ? `${user.medicalHistory.length} conditions` : 'No medical conditions'}
-            </p>
+            <div className="text-2xl font-bold">{heartRate} bpm</div>
+            <p className="text-xs text-muted-foreground">Average resting heart rate</p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Last Visit</CardTitle>
+            <CardTitle className="text-sm font-medium">Daily Steps</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {user.lastVisit ? new Date(user.lastVisit).toLocaleDateString() : 'N/A'}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {user.lastVisit ? 'Last checkup' : 'No previous visits'}
-            </p>
+            <div className="text-2xl font-bold">{dailySteps.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">Steps taken today</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Calories Burned</CardTitle>
+            <Flame className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{caloriesBurned} kcal</div>
+            <p className="text-xs text-muted-foreground">Calories burned today</p>
           </CardContent>
         </Card>
       </div>
 
+      {/* Keep Quick Actions and Upcoming Appointments as-is or remove if you want */}
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -137,4 +134,4 @@ export default function Overview() {
       </div>
     </div>
   );
-} 
+}
