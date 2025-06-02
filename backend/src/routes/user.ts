@@ -5,6 +5,7 @@ import { sign, verify, decode } from "hono/jwt";
 import axios from "axios";
 import OpenAI from "openai";
 import { appointmentSchema, chatSupportSchema, formatDate, predictionSchema, signInSchema, signUpSchema, specializationSchema, updateSchema } from "../utils/userType";
+import { getFoodInfo, calculateHealthScore, checkDietaryCompatibility } from "../utils/api";
 
 export const userRouter = new Hono<{
     Bindings: {
@@ -568,4 +569,100 @@ userRouter.post("/chat-support", async (c) => {
         });
     }
 });
+
+userRouter.get("/food-info", async(c) => {
+    const { foodName, barcode } = c.req.query();
+    console.log("Food Name:", foodName);
+    console.log("Barcode:", barcode);
+    if (!foodName && !barcode) {
+        c.status(400);
+        return c.json({ message: "Provide either foodName or barcode" });
+    }
+
+    try {
+        const foodInfo = await getFoodInfo(foodName, barcode);
+        c.status(200);
+        return c.json({
+            message: "Food information retrieved successfully",
+            foodInfo
+        });
+    } catch (err: any) {
+        console.error("Error fetching food info:", err);
+        c.status(500);
+        return c.json({
+            message: "Error while fetching food information",
+            error: err.message || "Internal Server Error"
+        });
+    }
+})
+
+userRouter.get("/health-score", async (c) => {
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env.DATABASE_URL,
+    }).$extends(withAccelerate());
+    
+    const userId = c.get("userId");
+    if (!userId) {
+        c.status(401);
+        return c.json({ message: "Unauthorized: User ID not found" });
+    }
+
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { age: true, height: true, weight: true },
+        });
+
+        if (!user) {
+            c.status(404);
+            return c.json({ message: "User not found" });
+        }
+
+        const { foodName, barcode } = c.req.query();
+        const healthScore = await calculateHealthScore(user, foodName, barcode);
+
+        c.status(200);
+        return c.json({
+            message: "Health score computed successfully",
+            ...healthScore
+        });
+    } catch (err: any) {
+        console.error("Error computing health score:", err);
+        c.status(500);
+        return c.json({
+            message: "Error while computing health score",
+            error: err.message || "Internal Server Error",
+        });
+    }
+});
+
+userRouter.post("/dietary-check", async (c) => {
+    const { foodName, barcode } = c.req.query();
+    const body = await c.req.json();
+    const { dietType } = body;
+
+    if (!dietType) {
+        c.status(400);
+        return c.json({
+            message: "dietType is required in request body (e.g., vegan, gluten-free)"
+        });
+    }
+
+    try {
+        const dietaryCheck = await checkDietaryCompatibility(foodName, barcode, dietType);
+        
+        c.status(200);
+        return c.json({
+            message: "Dietary compatibility check complete",
+            ...dietaryCheck
+        });
+    } catch (err: any) {
+        c.status(500);
+        return c.json({
+            message: "Error during dietary check",
+            error: err.message || "Internal Server Error",
+        });
+    }
+});
+
   

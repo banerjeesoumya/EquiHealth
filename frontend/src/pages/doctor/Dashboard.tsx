@@ -33,6 +33,7 @@ export default function DoctorDashboard() {
   const [showPrescriptionForm, setShowPrescriptionForm] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
+  const [formattedSlots, setFormattedSlots] = useState<Array<{start: string, end: string}>>([]);
   const [activeTab, setActiveTab] = useState("overview");
   const [appointmentStatus, setAppointmentStatus] = useState<Record<number, string>>({});
   const [doctorData, setDoctorData] = useState<any>(null);
@@ -84,7 +85,7 @@ export default function DoctorDashboard() {
     }
 
     const formattedDate = selectedDate.toISOString().split('T')[0];
-    const formattedSlots = selectedSlots.map(slot => {
+    const newFormattedSlots = selectedSlots.map(slot => {
       const [time, period] = slot.split(' ');
       const [hour, minute] = time.split(':');
       let hourNum = parseInt(hour);
@@ -111,10 +112,12 @@ export default function DoctorDashboard() {
       return { start: startTime, end: endTime };
     });
 
+    setFormattedSlots(newFormattedSlots);
+
     try {
       await axios.post('/doctor/availability', {
         date: formattedDate,
-        slots: formattedSlots
+        slots: newFormattedSlots
       });
 
       toast.success('Availability saved successfully');
@@ -130,6 +133,7 @@ export default function DoctorDashboard() {
       }
 
       setSelectedSlots([]);
+      setFormattedSlots([]);
     } catch (error) {
       console.error('Error saving availability:', error);
       toast.error('Failed to save availability. Please try again.');
@@ -340,9 +344,9 @@ export default function DoctorDashboard() {
               <div className="space-y-2">
                 <Label>Select Available Time Slots</Label>
                 <div className="grid grid-cols-3 gap-2 mt-2">
-                  {timeSlots.map((slot) => (
+                  {timeSlots.map((slot, index) => (
                     <Button
-                      key={slot}
+                      key={`${slot}-${index}`}
                       type="button"
                       variant={selectedSlots.includes(slot) ? "default" : "outline"}
                       className="flex items-center justify-center"

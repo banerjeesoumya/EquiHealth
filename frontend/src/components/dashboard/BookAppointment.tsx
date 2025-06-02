@@ -72,6 +72,14 @@ export default function BookAppointment() {
     }
   }, [selectedDoctor, selectedDate]);
 
+  // Helper to extract start time from slot label
+  const getSlotStart = (slotLabel: string) => {
+    if (slotLabel.includes(' - ')) {
+      return slotLabel.split(' - ')[0].trim();
+    }
+    return slotLabel.trim();
+  };
+
   const bookAppointment = async () => {
     if (!selectedDoctor || !selectedDate || !selectedSlot) {
       toast.error('Please select a doctor, date, and time slot');
@@ -87,7 +95,7 @@ export default function BookAppointment() {
       await axios.post('/user/bookAppointment', {
         doctorId: doctorObj.id,
         date: formattedDate,
-        slot: selectedSlot.replace(/\s?(AM|PM)/, ""),
+        slot: getSlotStart(selectedSlot),
       });
 
       toast.success('Appointment booked successfully');
@@ -158,18 +166,29 @@ export default function BookAppointment() {
             <div className="space-y-2">
               <Label>Available Time Slots</Label>
               <div className="grid grid-cols-3 gap-2 mt-2">
-                {slots.map((slot) => (
-                  <Button
-                    key={slot}
-                    type="button"
-                    variant={selectedSlot === slot ? "default" : "outline"}
-                    className="flex items-center justify-center"
-                    onClick={() => setSelectedSlot(slot)}
-                  >
-                    <Clock className="mr-2 h-4 w-4" />
-                    <span>{slot}</span>
-                  </Button>
-                ))}
+                {slots.map((slot: any, index) => {
+                  // Type guard for slot object
+                  const isSlotObj = (s: any): s is { start: string; end: string } =>
+                    s && typeof s === 'object' && 'start' in s && 'end' in s;
+                  const slotLabel = typeof slot === 'string'
+                    ? slot
+                    : isSlotObj(slot)
+                      ? `${slot.start} - ${slot.end}`
+                      : String(slot);
+
+                  return (
+                    <Button
+                      key={`${slotLabel}-${index}`}
+                      type="button"
+                      variant={selectedSlot === slotLabel ? "default" : "outline"}
+                      className="flex items-center justify-center"
+                      onClick={() => setSelectedSlot(slotLabel)}
+                    >
+                      <Clock className="mr-2 h-4 w-4" />
+                      <span>{slotLabel}</span>
+                    </Button>
+                  );
+                })}
               </div>
             </div>
           </>
@@ -186,4 +205,4 @@ export default function BookAppointment() {
       </CardFooter>
     </Card>
   );
-} 
+}
