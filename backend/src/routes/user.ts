@@ -296,8 +296,7 @@ userRouter.get("/getDoctorSlots", async (c) => {
     
     const doctorId = c.req.query("doctorId");
     const date = c.req.query("date");
-    console.log(doctorId)
-    console.log(date)
+    const userId = c.get("userId");
     if (!doctorId || !date) {
         c.status(400);
         return c.json({ message: "doctorId and date are required" });
@@ -317,11 +316,27 @@ userRouter.get("/getDoctorSlots", async (c) => {
                 message: "No available slots for this doctor on the given date" 
             });
         }
-        
-        c.status(200);
-        return c.json({ 
-            slots: doctorAvailability.slots 
+
+        // Fetch slots already booked by this user for this doctor and date
+        const userAppointments = await prisma.appointment.findMany({
+            where: {
+                doctorId,
+                userId,
+                date: new Date(date)
+            },
+            select: { slot: true }
         });
+        const userBookedSlots = userAppointments.map(a => a.slot);
+
+        // Filter out slots already booked by this user
+        let filteredSlots: any[] = [];
+        if (Array.isArray(doctorAvailability.slots)) {
+            filteredSlots = doctorAvailability.slots.filter((slot: any) =>
+                !userBookedSlots.includes(typeof slot === 'string' ? slot : slot.start)
+            );
+        }
+        c.status(200);
+        return c.json({ slots: filteredSlots });
     } catch (e) {
         console.error(e);
         c.status(500);

@@ -312,7 +312,11 @@ export default function DoctorDashboard() {
                         <SelectContent>
                           <SelectItem value="PENDING">PENDING</SelectItem>
                           <SelectItem value="CONFIRMED">CONFIRMED</SelectItem>
-                          <SelectItem value="COMPLETED">COMPLETED</SelectItem>
+                          <SelectItem value="COMPLETED" disabled={(() => {
+                            const now = new Date();
+                            const apptDate = new Date(`${appointment.date}T${appointment.time}`);
+                            return now < apptDate;
+                          })()}>COMPLETED</SelectItem>
                           <SelectItem value="CANCELLED">CANCELLED</SelectItem>
                         </SelectContent>
                       </Select>

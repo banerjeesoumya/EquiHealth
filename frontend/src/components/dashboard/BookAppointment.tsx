@@ -16,13 +16,18 @@ interface Doctor {
   availableSlots?: Record<string, string[]>;
 }
 
+// Helper type guard for slot objects
+function isSlotObject(slot: any): slot is { start: string; end?: string } {
+  return slot && typeof slot === 'object' && 'start' in slot;
+}
+
 export default function BookAppointment() {
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [selectedDoctor, setSelectedDoctor] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedSlot, setSelectedSlot] = useState('');
   const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [slots, setSlots] = useState<string[]>([]);
+  const [slots, setSlots] = useState<(string | { start: string; end?: string })[]>([]);
   const [loading, setLoading] = useState(false);
 
   const departments = [
@@ -166,29 +171,54 @@ export default function BookAppointment() {
             <div className="space-y-2">
               <Label>Available Time Slots</Label>
               <div className="grid grid-cols-3 gap-2 mt-2">
-                {slots.map((slot: any, index) => {
-                  // Type guard for slot object
-                  const isSlotObj = (s: any): s is { start: string; end: string } =>
-                    s && typeof s === 'object' && 'start' in s && 'end' in s;
-                  const slotLabel = typeof slot === 'string'
-                    ? slot
-                    : isSlotObj(slot)
-                      ? `${slot.start} - ${slot.end}`
-                      : String(slot);
-
-                  return (
-                    <Button
-                      key={`${slotLabel}-${index}`}
-                      type="button"
-                      variant={selectedSlot === slotLabel ? "default" : "outline"}
-                      className="flex items-center justify-center"
-                      onClick={() => setSelectedSlot(slotLabel)}
-                    >
-                      <Clock className="mr-2 h-4 w-4" />
-                      <span>{slotLabel}</span>
-                    </Button>
-                  );
-                })}
+                {slots
+                  .filter((slot, idx, arr) => {
+                    if (typeof slot === 'string') {
+                      return arr.findIndex(s => s === slot) === idx;
+                    } else if (isSlotObject(slot)) {
+                      return arr.findIndex(s => isSlotObject(s) && s.start === slot.start) === idx;
+                    }
+                    return true;
+                  })
+                  .length === 0 ? (
+                    <div className="col-span-3 text-center text-muted-foreground py-4 w-full">No available slots left</div>
+                  ) : (
+                    slots
+                      .filter((slot, idx, arr) => {
+                        if (typeof slot === 'string') {
+                          return arr.findIndex(s => s === slot) === idx;
+                        } else if (isSlotObject(slot)) {
+                          return arr.findIndex(s => isSlotObject(s) && s.start === slot.start) === idx;
+                        }
+                        return true;
+                      })
+                      .map((slot) => {
+                        let slotLabel = '';
+                        let slotValue = '';
+                        let isDisabled = false;
+                        if (typeof slot === 'string') {
+                          slotLabel = slot;
+                          slotValue = slot;
+                          isDisabled = slot.toLowerCase().includes('booked');
+                        } else if (isSlotObject(slot)) {
+                          slotLabel = slot.start + (slot.end ? ` - ${slot.end}` : '');
+                          slotValue = slot.start;
+                        }
+                        return (
+                          <Button
+                            key={slotValue}
+                            type="button"
+                            variant={selectedSlot === slotValue ? "default" : "outline"}
+                            className="flex items-center justify-center"
+                            onClick={() => setSelectedSlot(slotValue)}
+                            disabled={isDisabled}
+                          >
+                            <Clock className="mr-2 h-4 w-4" />
+                            <span>{slotLabel}</span>
+                          </Button>
+                        );
+                      })
+                  )}
               </div>
             </div>
           </>
