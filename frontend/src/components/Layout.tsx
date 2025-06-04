@@ -60,7 +60,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <Link to="/dashboard">Dashboard</Link>
             </Button>
             <Button variant="ghost" asChild>
-              <Link to="/food-info">Food Info & Health Score</Link>
+              <Link to="/mental-health">Mental Health</Link>
+            </Button>
+            <Button variant="ghost" asChild>
+              <Link to="/appointments">Appointments</Link>
             </Button>
             <Button variant="ghost" asChild>
               <Link to="/profile">Profile</Link>
