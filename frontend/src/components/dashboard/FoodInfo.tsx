@@ -1,14 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { toast } from 'sonner';
 import axios from '../../lib/axios';
-
-// Fix for missing types
-// @ts-ignore
-declare module 'react-qr-scanner';
+import { Html5Qrcode } from 'html5-qrcode';
 
 // For barcode scanning
 import QrScanner from 'react-qr-scanner';
@@ -44,6 +41,15 @@ export default function FoodInfo() {
   const [loading, setLoading] = useState(false);
   const [userMetrics, setUserMetrics] = useState({ age: 30, height: 170, weight: 70 });
   const [notFound, setNotFound] = useState(false);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch(console.error);
+      }
+    };
+  }, []);
 
   // Handle food info fetch
   const fetchFoodInfo = async (foodName?: string, barcode?: string) => {
@@ -76,16 +82,63 @@ export default function FoodInfo() {
   };
 
   // Barcode scan handler
-  const handleScan = (data: string | null) => {
-    if (data) {
-      setBarcode(data);
+  const startScanning = async () => {
+    try {
+      // First check if we have camera permissions
+      const devices = await Html5Qrcode.getCameras();
+      if (!devices || devices.length === 0) {
+        toast.error('No camera found on your device');
+        setScanning(false);
+        return;
+      }
+
+      const scanner = new Html5Qrcode("qr-reader");
+      scannerRef.current = scanner;
+      
+      // Try to use the back camera first, fall back to any available camera
+      const cameraId = devices.find(device => device.label.toLowerCase().includes('back'))?.id || devices[0].id;
+      
+      await scanner.start(
+        cameraId,
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+        },
+        (decodedText: string) => {
+          setBarcode(decodedText);
+          setScanning(false);
+          scanner.stop().catch(console.error);
+          fetchFoodInfo(undefined, decodedText);
+        },
+        (errorMessage: string) => {
+          // Only show error if it's not a normal scanning error
+          if (!errorMessage.includes('No MultiFormat Readers were able to detect the code')) {
+            console.error('Scanning error:', errorMessage);
+          }
+        }
+      );
+    } catch (err: any) {
+      console.error('Camera error:', err);
+      let errorMessage = 'Failed to start camera';
+      
+      if (err.name === 'NotAllowedError') {
+        errorMessage = 'Camera access was denied. Please allow camera access and try again.';
+      } else if (err.name === 'NotFoundError') {
+        errorMessage = 'No camera found on your device';
+      } else if (err.name === 'NotReadableError') {
+        errorMessage = 'Camera is already in use by another application';
+      }
+      
+      toast.error(errorMessage);
       setScanning(false);
-      fetchFoodInfo(undefined, data);
     }
   };
-  const handleError = (err: any) => {
-    toast.error('Barcode scan error');
-    setScanning(false);
+
+  const stopScanning = async () => {
+    if (scannerRef.current) {
+      await scannerRef.current.stop().catch(console.error);
+      setScanning(false);
+    }
   };
 
   // UI
@@ -127,19 +180,17 @@ export default function FoodInfo() {
             <TabsContent value="barcode">
               <div className="flex flex-col items-center gap-4">
                 {!scanning && (
-                  <Button onClick={() => setScanning(true)} disabled={loading}>
+                  <Button onClick={() => {
+                    setScanning(true);
+                    startScanning();
+                  }} disabled={loading}>
                     {barcode ? 'Rescan' : 'Start Scan'}
                   </Button>
                 )}
                 {scanning && (
                   <div className="w-full flex flex-col items-center">
-                    <QrScanner
-                      delay={300}
-                      onError={handleError}
-                      onScan={handleScan}
-                      style={{ width: '100%' }}
-                    />
-                    <Button variant="outline" className="mt-2" onClick={() => setScanning(false)}>
+                    <div id="qr-reader" className="w-full max-w-md"></div>
+                    <Button variant="outline" className="mt-2" onClick={stopScanning}>
                       Cancel
                     </Button>
                   </div>
