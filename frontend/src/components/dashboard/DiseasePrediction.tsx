@@ -17,23 +17,142 @@ export default function DiseasePrediction() {
   const [symptomsInput, setSymptomsInput] = useState('');
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(false);
+  const [prediction, setPrediction] = useState<string | null>(null);
+  const [departments, setDepartments] = useState<string[]>([]);
 
   const symptoms = [
-    "Fever",
-    "Cough",
-    "Headache",
-    "Fatigue",
-    "Nausea",
-    "Dizziness",
-    "Chest Pain",
-    "Shortness of Breath",
-    "Muscle Pain",
-    "Loss of Taste",
-    "Loss of Smell",
-    "Sore Throat",
-    "Runny Nose",
-    "Diarrhea",
-    "Vomiting"
+    "itching",
+    "skin_rash",
+    "nodal_skin_eruptions",
+    "continuous_sneezing",
+    "shivering",
+    "chills",
+    "joint_pain",
+    "stomach_pain",
+    "acidity",
+    "ulcers_on_tongue",
+    "muscle_wasting",
+    "vomiting",
+    "burning_micturition",
+    "spotting_urination",
+    "fatigue",
+    "weight_gain",
+    "anxiety",
+    "cold_hands_and_feets",
+    "mood_swings",
+    "weight_loss",
+    "restlessness",
+    "lethargy",
+    "patches_in_throat",
+    "irregular_sugar_level",
+    "cough",
+    "high_fever",
+    "sunken_eyes",
+    "breathlessness",
+    "sweating",
+    "dehydration",
+    "indigestion",
+    "headache",
+    "yellowish_skin",
+    "dark_urine",
+    "nausea",
+    "loss_of_appetite",
+    "pain_behind_the_eyes",
+    "back_pain",
+    "constipation",
+    "abdominal_pain",
+    "diarrhoea",
+    "mild_fever",
+    "yellow_urine",
+    "yellowing_of_eyes",
+    "acute_liver_failure",
+    "fluid_overload",
+    "swelling_of_stomach",
+    "swelled_lymph_nodes",
+    "malaise",
+    "blurred_and_distorted_vision",
+    "phlegm",
+    "throat_irritation",
+    "redness_of_eyes",
+    "sinus_pressure",
+    "runny_nose",
+    "congestion",
+    "chest_pain",
+    "weakness_in_limbs",
+    "fast_heart_rate",
+    "pain_during_bowel_movements",
+    "pain_in_anal_region",
+    "bloody_stool",
+    "irritation_in_anus",
+    "neck_pain",
+    "dizziness",
+    "cramps",
+    "bruising",
+    "obesity",
+    "swollen_legs",
+    "swollen_blood_vessels",
+    "puffy_face_and_eyes",
+    "enlarged_thyroid",
+    "brittle_nails",
+    "swollen_extremities",
+    "excessive_hunger",
+    "extra_marital_contacts",
+    "drying_and_tingling_lips",
+    "slurred_speech",
+    "knee_pain",
+    "hip_joint_pain",
+    "muscle_weakness",
+    "stiff_neck",
+    "swelling_joints",
+    "movement_stiffness",
+    "spinning_movements",
+    "loss_of_balance",
+    "unsteadiness",
+    "weakness_of_one_body_side",
+    "loss_of_smell",
+    "bladder_discomfort",
+    "foul_smell_of_urine",
+    "continuous_feel_of_urine",
+    "passage_of_gases",
+    "internal_itching",
+    "toxic_look_(typhos)",
+    "depression",
+    "irritability",
+    "muscle_pain",
+    "altered_sensorium",
+    "red_spots_over_body",
+    "belly_pain",
+    "abnormal_menstruation",
+    "dischromic_patches",
+    "watering_from_eyes",
+    "increased_appetite",
+    "polyuria",
+    "family_history",
+    "mucoid_sputum",
+    "rusty_sputum",
+    "lack_of_concentration",
+    "visual_disturbances",
+    "receiving_blood_transfusion",
+    "receiving_unsterile_injections",
+    "coma",
+    "stomach_bleeding",
+    "distention_of_abdomen",
+    "history_of_alcohol_consumption",
+    "fluid_overload",
+    "blood_in_sputum",
+    "prominent_veins_on_calf",
+    "palpitations",
+    "painful_walking",
+    "pus_filled_pimples",
+    "blackheads",
+    "scurring",
+    "skin_peeling",
+    "silver_like_dusting",
+    "small_dents_in_nails",
+    "inflammatory_nails",
+    "blister",
+    "red_sore_around_nose",
+    "yellow_crust_ooze"
   ];
 
   const toggleSymptom = (symptom: string) => {
@@ -60,12 +179,12 @@ export default function DiseasePrediction() {
       toast.error('Please select at least one symptom');
       return;
     }
-
     setLoading(true);
     try {
-      const response = await axios.post('/user/predict', { symptoms: selectedSymptoms });
-      setPredictions(response.data.predictions || []);
-      toast.success('Disease prediction completed');
+      const response = await axios.post('/user/predictDisease', { symptoms: selectedSymptoms });
+      setPrediction(response.data.prediction || null);
+      setDepartments(response.data.departments || []);
+      toast.success(response.data.message || 'Disease prediction completed');
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to get disease prediction');
     } finally {
@@ -84,53 +203,48 @@ export default function DiseasePrediction() {
           <div className="space-y-2">
             <Label>Select Your Symptoms</Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-2">
-              {symptoms.map((symptom) => (
-                <Button
-                  key={symptom}
-                  type="button"
-                  variant={selectedSymptoms.includes(symptom) ? "default" : "outline"}
-                  size="sm"
-                  className="justify-start"
-                  onClick={() => toggleSymptom(symptom)}
-                >
-                  {selectedSymptoms.includes(symptom) ? (
-                    <span className="mr-2">✓</span>
-                  ) : null}
-                  {symptom}
-                </Button>
-              ))}
+              {symptoms.map((symptom) => {
+                const displaySymptom = symptom.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                return (
+                  <Button
+                    key={symptom}
+                    type="button"
+                    variant={selectedSymptoms.includes(symptom) ? "default" : "outline"}
+                    size="sm"
+                    className="justify-start"
+                    onClick={() => toggleSymptom(symptom)}
+                  >
+                    {selectedSymptoms.includes(symptom) ? (
+                      <span className="mr-2">✓</span>
+                    ) : null}
+                    {displaySymptom}
+                  </Button>
+                );
+              })}
             </div>
-          </div>
-          
-          <div className="flex space-x-2">
-            <Input
-              placeholder="Add other symptom"
-              value={symptomsInput}
-              onChange={handleSymptomInput}
-            />
-            <Button type="button" onClick={addCustomSymptom}>
-              <Plus className="h-4 w-4" />
-            </Button>
           </div>
           
           {selectedSymptoms.length > 0 && (
             <div className="space-y-2">
               <Label>Selected Symptoms</Label>
               <div className="flex flex-wrap gap-2">
-                {selectedSymptoms.map((symptom) => (
-                  <div 
-                    key={symptom}
-                    className="bg-secondary text-secondary-foreground px-3 py-1 rounded-full flex items-center"
-                  >
-                    {symptom}
-                    <button 
-                      className="ml-2 text-secondary-foreground/70 hover:text-secondary-foreground"
-                      onClick={() => toggleSymptom(symptom)}
+                {selectedSymptoms.map((symptom) => {
+                  const displaySymptom = symptom.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                  return (
+                    <div 
+                      key={symptom}
+                      className="bg-secondary text-secondary-foreground px-3 py-1 rounded-full flex items-center"
                     >
-                      ✕
-                    </button>
-                  </div>
-                ))}
+                      {displaySymptom}
+                      <button 
+                        className="ml-2 text-secondary-foreground/70 hover:text-secondary-foreground"
+                        onClick={() => toggleSymptom(symptom)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -146,42 +260,40 @@ export default function DiseasePrediction() {
         </CardFooter>
       </Card>
       
-      {predictions.length > 0 && (
+      {prediction && (
         <Card>
           <CardHeader>
             <CardTitle>Prediction Results</CardTitle>
-            <CardDescription>Based on your symptoms, these are the possible conditions</CardDescription>
+            <CardDescription>Based on your symptoms, this is the most likely condition</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {predictions.map((result, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-medium">{result.disease}</h3>
-                    <span className="text-sm">
-                      {Math.round(result.probability * 100)}% match
-                    </span>
-                  </div>
-                  <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
-                    <div 
-                      className="bg-primary h-full"
-                      style={{ width: `${result.probability * 100}%` }}
-                    />
-                  </div>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-medium">{prediction}</h3>
                 </div>
-              ))}
-            </div>
-            
-            <div className="mt-6 p-4 bg-muted rounded-lg">
-              <p className="text-sm font-medium mb-2">Important Note:</p>
-              <p className="text-sm text-muted-foreground">
-                This prediction is based on machine learning algorithms and is not a definitive diagnosis. 
-                Please consult a healthcare professional for proper medical advice.
-              </p>
+              </div>
+              {departments.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-sm font-medium mb-1">Relevant Departments:</p>
+                  <ul className="list-disc list-inside text-sm">
+                    {departments.map((dept, idx) => (
+                      <li key={idx}>{dept}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div className="mt-6 p-4 bg-muted rounded-lg">
+                <p className="text-sm font-medium mb-2">Important Note:</p>
+                <p className="text-sm text-muted-foreground">
+                  This prediction is based on machine learning algorithms and is not a definitive diagnosis. 
+                  Please consult a healthcare professional for proper medical advice.
+                </p>
+              </div>
             </div>
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={() => setPredictions([])}>
+            <Button variant="outline" onClick={() => { setPrediction(null); setDepartments([]); }}>
               Clear Results
             </Button>
             <Button>
