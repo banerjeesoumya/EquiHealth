@@ -389,6 +389,18 @@ userRouter.post("/bookAppointment", async (c) => {
             return c.json({ message: "Selected slot is not available" });
         }
 
+        // Remove the booked slot from doctorAvailability.slots
+        const updatedSlots = doctorAvailability.slots.filter(slot => {
+            if (typeof slot === 'object' && slot !== null && 'start' in slot) {
+                return slot.start !== selectedSlot;
+            }
+            return true;
+        });
+        await prisma.doctorAvailability.update({
+            where: { doctorId_date: { doctorId: correctAppointmentBody.data.doctorId, date: new Date(correctAppointmentBody.data.date) } },
+            data: { slots: updatedSlots }
+        });
+
         const appointment = await prisma.appointment.create({
             data: {
                 userId,

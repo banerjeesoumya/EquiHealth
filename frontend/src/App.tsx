@@ -11,6 +11,7 @@ import DoctorDashboard from './pages/doctor/Dashboard';
 import { AuthProvider } from './contexts/AuthContext';
 import { Analytics } from '@vercel/analytics/react';
 import Landing from './pages/Landing';
+import FoodInfo from './components/dashboard/FoodInfo';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
 
               <Route element={<ProtectedRoute role="patient" />}>
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/food-info" element={<FoodInfo />} />
               </Route>
 
               <Route element={<ProtectedRoute role="doctor" />}>
