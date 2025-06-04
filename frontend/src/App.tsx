@@ -16,6 +16,7 @@ import Challenges from './pages/mental-health/Challenges';
 import Journal from './pages/mental-health/Journal';
 import Community from './pages/mental-health/Community';
 import Assessment from './pages/mental-health/Assessment';
+import FoodInfo from './components/dashboard/FoodInfo';
 import { AuthProvider } from './contexts/AuthContext';
 import { Analytics } from '@vercel/analytics/react';
 import Landing from './pages/Landing';
@@ -41,6 +42,7 @@ function App() {
                 <Route path="/mental-health/journal" element={<Journal />} />
                 <Route path="/mental-health/community" element={<Community />} />
                 <Route path="/mental-health/assessment" element={<Assessment />} />
+                <Route path="/food-info" element={<FoodInfo />} />
               </Route>
 
               <Route element={<ProtectedRoute role="doctor" />}>
