@@ -446,42 +446,43 @@ userRouter.get("/getAppointments", async (c) => {
 });
 
 userRouter.post("/predictDisease", async (c) => {
-    const body = await c.req.json();
-    const validation = predictionSchema.safeParse(body);
-  
-    if (!validation.success) {
-      const errors = validation.error.errors.map(e => e.message);
-      c.status(400);
-      return c.json({ message: errors });
-    }
-  
-    try {
-      const response = await axios.post(
-        c.env.FLASK_SERVICE,
-        {
-          symptoms: body.symptoms
-        },
-        {
-          headers: { "Content-Type": "application/json" }
-        }
-      );
-      console.log(response);
-      const prediction = response.data.predicted_diseases;
-  
-      return c.json({
-        message: "Prediction successful",
-        prediction
-      });
-    } catch (error: any) {
-      console.error("Prediction Error:", error.message || error);
-      c.status(500);
-      return c.json({
-        message: "Error during prediction",
-        error: error.response?.data || error.message
-      });
-    }
-  });
+  const body = await c.req.json();
+  const validation = predictionSchema.safeParse(body);
 
+  if (!validation.success) {
+    const errors = validation.error.errors.map(e => e.message);
+    c.status(400);
+    return c.json({ message: errors });
+  }
+  
+  try {
+    console.log("Sending request to Flask service at:", c.env.FLASK_SERVICE);
+    const response = await axios.post(
+      c.env.FLASK_SERVICE,
+      {
+        symptoms: body.symptoms
+      },
+      {
+        headers: { "Content-Type": "application/json" }
+      }
+    );
+
+    const { predicted_diseases, related_departments } = response.data;
+
+    return c.json({
+      message: "Prediction successful",
+      prediction: predicted_diseases,
+      departments: related_departments
+    });
+  } catch (error: any) {
+    console.error("Prediction Error:", error.message || error);
+    c.status(500);
+    return c.json({
+      message: "Error during prediction",
+      error: error.response?.data || error.message
+    });
+  }
+});
 // userRouter.post("/chat-support", async (c) => {
 //     const openai = new OpenAI({
 //         apiKey: c.env.OPENROUTER_API_KEY,
