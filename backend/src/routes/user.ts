@@ -693,4 +693,32 @@ userRouter.post("/dietary-check", async (c) => {
     }
 });
 
+// Fetch user or doctor info by ID for community forum
+userRouter.get("/info/:id", async (c) => {
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env.DATABASE_URL,
+    }).$extends(withAccelerate());
+    const { id } = c.req.param();
+    // Try to find user
+    let user = await prisma.user.findUnique({
+        where: { id: id },
+        select: { id: true, name: true, role: true }
+    });
+    if (user) {
+        c.status(200);
+        return c.json(user);
+    }
+    // Try to find doctor
+    let doctor = await prisma.doctor.findUnique({
+        where: { id: id },
+        select: { id: true, name: true, role: true, specialization: true }
+    });
+    if (doctor) {
+        c.status(200);
+        return c.json(doctor);
+    }
+    c.status(404);
+    return c.json({ message: "User or doctor not found" });
+});
+
   

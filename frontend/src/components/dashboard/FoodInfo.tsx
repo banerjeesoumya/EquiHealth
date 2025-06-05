@@ -7,9 +7,6 @@ import { toast } from 'sonner';
 import axios from '../../lib/axios';
 import { Html5Qrcode } from 'html5-qrcode';
 
-// For barcode scanning
-import QrScanner from 'react-qr-scanner';
-
 interface FoodInfo {
   name: string;
   ingredients: string;
@@ -39,7 +36,7 @@ export default function FoodInfo() {
   const [foodInfo, setFoodInfo] = useState<FoodInfo | null>(null);
   const [healthScore, setHealthScore] = useState<HealthScore | null>(null);
   const [loading, setLoading] = useState(false);
-  const [userMetrics, setUserMetrics] = useState({ age: 30, height: 170, weight: 70 });
+  const [userMetrics] = useState({ age: 30, height: 170, weight: 70 });
   const [notFound, setNotFound] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
@@ -166,13 +163,16 @@ export default function FoodInfo() {
                 }}
                 className="flex gap-2"
               >
+                <label htmlFor="food-name-input" className="sr-only">Food name</label>
                 <Input
+                  id="food-name-input"
                   placeholder="e.g. Oats, Coca Cola, etc."
                   value={foodName}
                   onChange={e => setFoodName(e.target.value)}
                   className="flex-1"
+                  aria-label="Food name"
                 />
-                <Button type="submit" disabled={loading}>
+                <Button type="submit" disabled={loading} aria-label="Search for food">
                   {loading ? 'Searching...' : 'Search'}
                 </Button>
               </form>
@@ -214,7 +214,7 @@ export default function FoodInfo() {
                   {foodInfo.image && foodInfo.image !== 'No image available' && (
                     <img
                       src={foodInfo.image}
-                      alt={foodInfo.name}
+                      alt={`Image of ${foodInfo.name}`}
                       className="w-32 h-32 object-cover rounded-lg border"
                     />
                   )}
@@ -304,4 +304,8 @@ export default function FoodInfo() {
       </Card>
     </div>
   );
-} 
+}
+
+// To enable code-splitting, import this component using React.lazy in your main app/router:
+// const FoodInfo = React.lazy(() => import('./components/dashboard/FoodInfo'));
+// <Suspense fallback={<div>Loading...</div>}><FoodInfo /></Suspense> 

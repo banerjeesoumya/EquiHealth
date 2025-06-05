@@ -12,7 +12,7 @@ import {
   ClipboardList, 
   AlertCircle 
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 
 interface FeatureCard {
@@ -39,7 +39,25 @@ const staggerContainer = {
 
 const MentalHealth: React.FC = () => {
   const navigate = useNavigate();
-  const [isFirstVisit, setIsFirstVisit] = useState(true);
+
+  useEffect(() => {
+    // Add the script
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
+    script.async = true;
+    script.type = 'text/javascript';
+    document.body.appendChild(script);
+
+    // Add the widget
+    const widget = document.createElement('elevenlabs-convai');
+    widget.setAttribute('agent-id', 'agent_01jx0mq5qgfhha8yjwrbxwj9y9');
+    document.body.appendChild(widget);
+
+    return () => {
+      document.body.removeChild(widget);
+      document.body.removeChild(script);
+    };
+  }, []);
 
   const features: FeatureCard[] = [
     {
@@ -91,6 +109,7 @@ const MentalHealth: React.FC = () => {
   };
 
   return (
+    
     <div className="container mx-auto py-8 px-4">
       {/* Header */}
       <motion.div
@@ -140,7 +159,7 @@ const MentalHealth: React.FC = () => {
         variants={staggerContainer}
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
       >
-        {features.map((feature, index) => (
+        {features.map((feature) => (
           <motion.div
             key={feature.title}
             variants={fadeIn}

@@ -52,14 +52,6 @@ function setCachedHistory(messages: Message[]) {
   } catch {}
 }
 
-// Helper to convert OpenAI messages to Message[] if needed in future
-function openAiToMessage(msg: { role: string; content: string }): Message {
-  return {
-    sender: msg.role === 'user' ? 'user' : 'bot',
-    text: msg.content,
-  };
-}
-
 export default function HealthAssistantChat({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');
@@ -125,23 +117,18 @@ export default function HealthAssistantChat({ open, onClose }: { open: boolean; 
               <X size={18} />
             </Button>
           </div>
-          <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2 bg-background">
+          <div className="flex-1 overflow-y-auto px-4 py-2" style={{ maxHeight: 400 }}>
             {messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              <div key={idx} className={`mb-2 flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                aria-live={msg.sender === 'bot' ? 'polite' : undefined}
               >
-                <div
-                  className={`rounded-lg px-3 py-2 max-w-[85%] text-sm shadow-sm ${
-                    msg.sender === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground'
-                  }`}
+                <div className={`rounded-xl px-4 py-2 max-w-xs break-words ${msg.sender === 'user' ? 'bg-primary text-primary-foreground ml-auto' : 'bg-muted text-foreground mr-auto'}`}
+                  role={msg.sender === 'bot' ? 'status' : undefined}
                 >
                   {msg.sender === 'bot' ? (
-                    <ReactMarkdown>{msg.text}</ReactMarkdown>
+                    <span aria-live="polite"> <ReactMarkdown>{msg.text}</ReactMarkdown> </span>
                   ) : (
-                    msg.text
+                    <span>{msg.text}</span>
                   )}
                 </div>
               </div>
@@ -157,7 +144,9 @@ export default function HealthAssistantChat({ open, onClose }: { open: boolean; 
             <div ref={messagesEndRef} />
           </div>
           <div className="flex items-center gap-2 border-t px-4 py-2 bg-background rounded-b-xl">
+            <label htmlFor="chat-input" className="sr-only">Type your message</label>
             <Input
+              id="chat-input"
               className="flex-1"
               placeholder="Type your message..."
               value={input}
@@ -165,8 +154,9 @@ export default function HealthAssistantChat({ open, onClose }: { open: boolean; 
               onKeyDown={handleInputKeyDown}
               disabled={loading}
               autoFocus
+              aria-label="Type your message"
             />
-            <Button size="icon" onClick={sendMessage} disabled={loading || !input.trim()}>
+            <Button size="icon" onClick={sendMessage} disabled={loading || !input.trim()} aria-label="Send message">
               <Send size={18} />
             </Button>
           </div>
@@ -174,4 +164,8 @@ export default function HealthAssistantChat({ open, onClose }: { open: boolean; 
       </Card>
     </div>
   );
-} 
+}
+
+// To enable code-splitting, import this component using React.lazy in your main app/router:
+// const HealthAssistantChat = React.lazy(() => import('./components/dashboard/HealthAssistantChat'));
+// <Suspense fallback={<div>Loading...</div>}><HealthAssistantChat open={open} onClose={onClose} /></Suspense> 

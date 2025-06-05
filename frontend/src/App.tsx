@@ -20,6 +20,7 @@ import FoodInfo from './components/dashboard/FoodInfo';
 import { AuthProvider } from './contexts/AuthContext';
 import { Analytics } from '@vercel/analytics/react';
 import Landing from './pages/Landing';
+import CommunityForum from './components/dashboard/CommunityForum';
 
 function App() {
   return (
@@ -43,14 +44,17 @@ function App() {
                 <Route path="/mental-health/community" element={<Community />} />
                 <Route path="/mental-health/assessment" element={<Assessment />} />
                 <Route path="/food-info" element={<FoodInfo />} />
+                <Route path="/community-forum" element={<CommunityForum />} />
               </Route>
 
               <Route element={<ProtectedRoute role="doctor" />}>
                 <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
+                <Route path="/community-forum" element={<CommunityForum />} />
               </Route>
 
               <Route element={<ProtectedRoute role="admin" />}>
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route path="/community-forum" element={<CommunityForum />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
