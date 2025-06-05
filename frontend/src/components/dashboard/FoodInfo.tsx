@@ -163,13 +163,16 @@ export default function FoodInfo() {
                 }}
                 className="flex gap-2"
               >
+                <label htmlFor="food-name-input" className="sr-only">Food name</label>
                 <Input
+                  id="food-name-input"
                   placeholder="e.g. Oats, Coca Cola, etc."
                   value={foodName}
                   onChange={e => setFoodName(e.target.value)}
                   className="flex-1"
+                  aria-label="Food name"
                 />
-                <Button type="submit" disabled={loading}>
+                <Button type="submit" disabled={loading} aria-label="Search for food">
                   {loading ? 'Searching...' : 'Search'}
                 </Button>
               </form>
@@ -211,7 +214,7 @@ export default function FoodInfo() {
                   {foodInfo.image && foodInfo.image !== 'No image available' && (
                     <img
                       src={foodInfo.image}
-                      alt={foodInfo.name}
+                      alt={`Image of ${foodInfo.name}`}
                       className="w-32 h-32 object-cover rounded-lg border"
                     />
                   )}
@@ -301,4 +304,8 @@ export default function FoodInfo() {
       </Card>
     </div>
   );
-} 
+}
+
+// To enable code-splitting, import this component using React.lazy in your main app/router:
+// const FoodInfo = React.lazy(() => import('./components/dashboard/FoodInfo'));
+// <Suspense fallback={<div>Loading...</div>}><FoodInfo /></Suspense> 

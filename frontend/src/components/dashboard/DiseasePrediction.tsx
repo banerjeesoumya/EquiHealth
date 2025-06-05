@@ -2,11 +2,19 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
+<<<<<<< HEAD
+=======
+import { Input } from '../ui/input';
+>>>>>>> 21f88a70d2025759e17770b133eea02eb0219852
 import { toast } from 'sonner';
 import axios from '../../lib/axios';
 
 export default function DiseasePrediction() {
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
+<<<<<<< HEAD
+=======
+  const [symptomsInput, setSymptomsInput] = useState('');
+>>>>>>> 21f88a70d2025759e17770b133eea02eb0219852
   const [loading, setLoading] = useState(false);
   const [prediction, setPrediction] = useState<string | null>(null);
   const [departments, setDepartments] = useState<string[]>([]);
@@ -228,6 +236,18 @@ export default function DiseasePrediction() {
               </div>
             </div>
           )}
+          <form onSubmit={e => { e.preventDefault(); addCustomSymptom(); }} className="flex gap-2 mt-2">
+            <label htmlFor="custom-symptom-input" className="sr-only">Add custom symptom</label>
+            <Input
+              id="custom-symptom-input"
+              placeholder="Add custom symptom"
+              value={symptomsInput}
+              onChange={handleSymptomInput}
+              className="flex-1"
+              aria-label="Add custom symptom"
+            />
+            <Button type="submit" aria-label="Add custom symptom">Add</Button>
+          </form>
         </CardContent>
         <CardFooter>
           <Button 
@@ -241,7 +261,7 @@ export default function DiseasePrediction() {
       </Card>
       
       {prediction && (
-        <Card>
+        <Card aria-live="polite">
           <CardHeader>
             <CardTitle>Prediction Results</CardTitle>
             <CardDescription>Based on your symptoms, this is the most likely condition</CardDescription>
