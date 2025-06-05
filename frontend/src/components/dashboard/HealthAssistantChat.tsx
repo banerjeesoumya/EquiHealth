@@ -52,14 +52,6 @@ function setCachedHistory(messages: Message[]) {
   } catch {}
 }
 
-// Helper to convert OpenAI messages to Message[] if needed in future
-function openAiToMessage(msg: { role: string; content: string }): Message {
-  return {
-    sender: msg.role === 'user' ? 'user' : 'bot',
-    text: msg.content,
-  };
-}
-
 export default function HealthAssistantChat({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');

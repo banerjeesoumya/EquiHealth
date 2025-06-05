@@ -7,9 +7,6 @@ import { toast } from 'sonner';
 import axios from '../../lib/axios';
 import { Html5Qrcode } from 'html5-qrcode';
 
-// For barcode scanning
-import QrScanner from 'react-qr-scanner';
-
 interface FoodInfo {
   name: string;
   ingredients: string;
@@ -39,7 +36,7 @@ export default function FoodInfo() {
   const [foodInfo, setFoodInfo] = useState<FoodInfo | null>(null);
   const [healthScore, setHealthScore] = useState<HealthScore | null>(null);
   const [loading, setLoading] = useState(false);
-  const [userMetrics, setUserMetrics] = useState({ age: 30, height: 170, weight: 70 });
+  const [userMetrics] = useState({ age: 30, height: 170, weight: 70 });
   const [notFound, setNotFound] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
 

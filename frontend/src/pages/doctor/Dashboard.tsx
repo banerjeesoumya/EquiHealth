@@ -1,528 +1,118 @@
 import { useState, useEffect } from 'react';
-import { Activity, Calendar, ClipboardList, Users, Search, Plus, Clock, Check } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Button } from '../../components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
-import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { Textarea } from '../../components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
-import { toast } from 'sonner';
-import { DatePicker } from '../../components/ui/date-picker';
-import { addDays } from 'date-fns';
 import axios from '../../lib/axios';
-
-const generateTimeSlots = () => {
-  const slots = [];
-  for (let hour = 9; hour < 17; hour++) {
-    const hourFormatted = hour % 12 === 0 ? 12 : hour % 12;
-    const ampm = hour < 12 ? 'AM' : 'PM';
-    
-    slots.push(`${hourFormatted}:00 ${ampm}`);
-    slots.push(`${hourFormatted}:30 ${ampm}`);
-  }
-  return slots;
-};
-
-const timeSlots = generateTimeSlots();
+import Overview from '../../components/dashboard/Overview';
+import Profile from '../../components/dashboard/Profile';
+import BookAppointment from '../../components/dashboard/BookAppointment';
+import DiseasePrediction from '../../components/dashboard/DiseasePrediction';
+import Appointments from '@/components/dashboard/Appointments';
+import HealthAssistantChat from '../../components/dashboard/HealthAssistantChat';
 
 export default function DoctorDashboard() {
   const { user } = useAuth();
-  const [selectedPatient, setSelectedPatient] = useState('');
-  const [showPrescriptionForm, setShowPrescriptionForm] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
-  const [formattedSlots, setFormattedSlots] = useState<Array<{start: string, end: string}>>([]);
   const [activeTab, setActiveTab] = useState("overview");
-  const [appointmentStatus, setAppointmentStatus] = useState<Record<number, string>>({});
   const [doctorData, setDoctorData] = useState<any>(null);
-  const [filteredAppointments, setFilteredAppointments] = useState<any[]>([]);
-  const [patientDetails, setPatientDetails] = useState<any[]>([]);
-  const [appointments, setAppointments] = useState<any[]>([]);
-  const [patients, setPatients] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await axios.get('/doctor/appointments');
-      const appointmentsRaw = res.data.appointments || [];
-      const normalized = appointmentsRaw.map((a: any) => ({
-        id: a.id,
-        status: a.status,
-        patient: a.patient,
-        date: a.date,
-        time: a.slot
-      }));
-      setAppointments(normalized);
-      setFilteredAppointments(normalized);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
-    fetchData();
+    const fetchData = async () => {
+      try {
+        const appointmentsRes = await axios.get('/doctor/getAppointments');
+        const appointments = appointmentsRes.data.appointments || [];
+        
+        // Normalize the data structure
+        const normalizedAppointments = appointments.map((appointment: any) => ({
+          id: appointment.id,
+          patientId: appointment.patientId,
+          doctorId: appointment.doctorId,
+          date: appointment.date,
+          time: appointment.time,
+          status: appointment.status,
+          patient: {
+            id: appointment.patient?.id,
+            name: appointment.patient?.name,
+            email: appointment.patient?.email,
+            age: appointment.patient?.age,
+            gender: appointment.patient?.gender,
+            height: appointment.patient?.height,
+            weight: appointment.patient?.weight,
+            bmi: appointment.patient?.bmi,
+            medicalHistory: appointment.patient?.medicalHistory,
+            lastVisit: appointment.patient?.lastVisit,
+            nextAppointment: appointment.patient?.nextAppointment
+          }
+        }));
+
+        setDoctorData({
+          ...user,
+          appointments: normalizedAppointments
+        });
+      } catch (err) {
+        console.error('Error fetching data:', err);
+      }
+    };
+
+    if (user) {
+      fetchData();
+    }
   }, [user]);
 
-  const toggleSlot = (slot: string) => {
-    if (selectedSlots.includes(slot)) {
-      setSelectedSlots(selectedSlots.filter(s => s !== slot));
-    } else {
-      setSelectedSlots([...selectedSlots, slot]);
-    }
-  };
-
-  const saveAvailability = async () => {
-    if (!selectedDate || selectedSlots.length === 0) {
-      toast.error('Please select a date and at least one time slot');
-      return;
-    }
-
-    const formattedDate = selectedDate.toISOString().split('T')[0];
-    const newFormattedSlots = selectedSlots.map(slot => {
-      const [time, period] = slot.split(' ');
-      const [hour, minute] = time.split(':');
-      let hourNum = parseInt(hour);
-
-      if (period === 'PM' && hourNum !== 12) hourNum += 12;
-      else if (period === 'AM' && hourNum === 12) hourNum = 0;
-
-      const startTime = `${hourNum.toString().padStart(2, '0')}:${minute}`;
-
-      let endHourNum = hourNum;
-      let endMinute = parseInt(minute);
-
-      if (endMinute === 30) {
-        endHourNum += 1;
-        endMinute = 0;
-      } else {
-        endMinute = 30;
-      }
-
-      if (endHourNum === 24) endHourNum = 0;
-
-      const endTime = `${endHourNum.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
-
-      return { start: startTime, end: endTime };
-    });
-
-    setFormattedSlots(newFormattedSlots);
-
-    try {
-      await axios.post('/doctor/availability', {
-        date: formattedDate,
-        slots: newFormattedSlots
-      });
-
-      toast.success('Availability saved successfully');
-
-      if (doctorData) {
-        setDoctorData({
-          ...doctorData,
-          availableSlots: {
-            ...doctorData.availableSlots,
-            [formattedDate]: selectedSlots
-          }
-        });
-      }
-
-      setSelectedSlots([]);
-      setFormattedSlots([]);
-    } catch (error) {
-      console.error('Error saving availability:', error);
-      toast.error('Failed to save availability. Please try again.');
-    }
-  };
-
-  const updateAppointmentStatus = async (appointmentId: number, newStatus: string) => {
-    try {
-      await axios.patch('/doctor/appointments/update-status', {
-        appointmentId: String(appointmentId),
-        stat: newStatus
-      });
-
-      setFilteredAppointments(prevAppointments =>
-        prevAppointments.map(appointment =>
-          appointment.id === appointmentId
-            ? { ...appointment, status: newStatus }
-            : appointment
-        )
-      );
-
-      setAppointmentStatus({
-        ...appointmentStatus,
-        [appointmentId]: newStatus
-      });
-
-      toast.success(`Appointment status updated to ${newStatus}`);
-    } catch (error) {
-      console.error('Error updating appointment status:', error);
-      toast.error('Failed to update appointment status. Please try again.');
-    }
-  };
+  if (!doctorData) {
+    return <div className="container py-8 text-center">Loading doctor data...</div>;
+  }
 
   return (
-    <div className="container py-8 space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto py-6">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Welcome, Dr. {doctorData?.name?.split(' ')[1] || user?.name}</h1>
-          <p className="text-muted-foreground">Manage your patients and appointments</p>
+          <h1 className="text-3xl font-bold tracking-tight">Welcome back, Dr. {user?.name || "User"}</h1>
+          <p className="text-muted-foreground text-lg">Manage your appointments and patient care</p>
         </div>
-        <Button onClick={() => setShowPrescriptionForm(true)}>
-          <Plus className="mr-2 h-4 w-4" /> New Prescription
-        </Button>
       </div>
 
-      <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="appointments">Appointments</TabsTrigger>
-          <TabsTrigger value="availability">Set Availability</TabsTrigger>
-          <TabsTrigger value="patients">Patients</TabsTrigger>
+      {/* Tabs Section */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="w-full flex bg-muted rounded-xl p-1 mb-6">
+          <TabsTrigger value="overview" className="flex-1 data-[state=active]:bg-background data-[state=active]:font-bold data-[state=active]:shadow-sm rounded-lg transition-colors">
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="profile" className="flex-1 data-[state=active]:bg-background data-[state=active]:font-bold data-[state=active]:shadow-sm rounded-lg transition-colors">
+            Profile
+          </TabsTrigger>
+          <TabsTrigger value="appointments" className="flex-1 data-[state=active]:bg-background data-[state=active]:font-bold data-[state=active]:shadow-sm rounded-lg transition-colors">
+            Appointments
+          </TabsTrigger>
+          <TabsTrigger value="availability" className="flex-1 data-[state=active]:bg-background data-[state=active]:font-bold data-[state=active]:shadow-sm rounded-lg transition-colors">
+            Set Availability
+          </TabsTrigger>
+          <TabsTrigger value="patients" className="flex-1 data-[state=active]:bg-background data-[state=active]:font-bold data-[state=active]:shadow-sm rounded-lg transition-colors">
+            Patients
+          </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="overview" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Patients</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{patientDetails.length}</div>
-                <p className="text-xs text-muted-foreground">{Math.floor(patientDetails.length / 2)} new this month</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Today's Appointments</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {filteredAppointments.filter(a => 
-                    a.date === new Date().toISOString().split('T')[0]).length || 3}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {filteredAppointments.filter(a => 
-                    a.date === new Date().toISOString().split('T')[0] && 
-                    a.status !== 'COMPLETED').length || 2} consultations left
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Average Consultations</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {Math.round((filteredAppointments.length / 5) * 10) / 10 || 4.8}
-                </div>
-                <p className="text-xs text-muted-foreground">Per day this week</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Prescriptions</CardTitle>
-                <ClipboardList className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{patientDetails.length * 2 || 12}</div>
-                <p className="text-xs text-muted-foreground">Issued this week</p>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Appointments</CardTitle>
-              <CardDescription>Your upcoming and recent appointments</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {filteredAppointments.slice(0, 3).map((appointment) => (
-                  <div key={appointment.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="space-y-1">
-                      <p className="font-medium">{appointment.patient}</p>
-                      <p className="text-sm text-muted-foreground">{appointment.type}</p>
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Calendar className="mr-1 h-4 w-4" />
-                        {appointment.date} at {appointment.time}
-                      </div>
-                    </div>
-                    <div className="text-sm font-medium">
-                      <span className={`px-2 py-1 rounded-full ${
-                        appointment.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                        appointment.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {appointment.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" className="w-full" onClick={() => setActiveTab("appointments")}>
-                View All Appointments
-              </Button>
-            </CardFooter>
-          </Card>
+          <Overview />
         </TabsContent>
-        
+
+        <TabsContent value="profile" className="space-y-4">
+          <Profile />
+        </TabsContent>
+
         <TabsContent value="appointments" className="space-y-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Manage Appointments</CardTitle>
-                <CardDescription>View and update your appointment statuses</CardDescription>
-              </div>
-              <Button variant="outline" onClick={fetchData}>
-                Refresh
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {filteredAppointments.map((appointment) => (
-                  <div key={appointment.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="space-y-1">
-                      <p className="font-medium">{appointment.patient}</p>
-                      <p className="text-sm text-muted-foreground">{appointment.type}</p>
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Calendar className="mr-1 h-4 w-4" />
-                        {appointment.date} at {appointment.time}
-                      </div>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Select 
-                        defaultValue={appointment.status}
-                        onValueChange={(value) => updateAppointmentStatus(appointment.id, value)}
-                      >
-                        <SelectTrigger className="w-36">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="PENDING">PENDING</SelectItem>
-                          <SelectItem value="CONFIRMED">CONFIRMED</SelectItem>
-                          <SelectItem value="COMPLETED" disabled={(() => {
-                            const now = new Date();
-                            const apptDate = new Date(`${appointment.date}T${appointment.time}`);
-                            return now < apptDate;
-                          })()}>COMPLETED</SelectItem>
-                          <SelectItem value="CANCELLED">CANCELLED</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <Appointments />
         </TabsContent>
-        
+
         <TabsContent value="availability" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Set Your Availability</CardTitle>
-              <CardDescription>Choose which time slots you're available for appointments</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Select Date</Label>
-                <DatePicker 
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  disabled={(date: Date) => date < new Date() || date > addDays(new Date(), 30)}
-                  className="w-full"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Select Available Time Slots</Label>
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  {timeSlots.map((slot, index) => (
-                    <Button
-                      key={`${slot}-${index}`}
-                      type="button"
-                      variant={selectedSlots.includes(slot) ? "default" : "outline"}
-                      className="flex items-center justify-center"
-                      onClick={() => toggleSlot(slot)}
-                    >
-                      <Clock className="mr-2 h-4 w-4" />
-                      <span>{slot}</span>
-                      {selectedSlots.includes(slot) && <Check className="ml-2 h-4 w-4" />}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button onClick={saveAvailability} className="w-full">
-                Save Availability
-              </Button>
-            </CardFooter>
-          </Card>
+          <BookAppointment />
         </TabsContent>
-        
+
         <TabsContent value="patients" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Patient Management</CardTitle>
-              <CardDescription>View and manage your patients</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2 mb-4">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search patients..." className="flex-1" />
-              </div>
-              <div className="space-y-4">
-                {patientDetails.map((patient) => (
-                  <div
-                    key={patient.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
-                  >
-                    <div className="space-y-1">
-                      <p className="font-medium">{patient.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Age: {patient.age} | BMI: {patient.bmi}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Condition: {patient.medicalHistory?.[0] || 'No conditions'}
-                      </p>
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Calendar className="mr-1 h-4 w-4" />
-                        Next appointment: {patient.nextAppointment}
-                      </div>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" onClick={() => setSelectedPatient(patient.name)}>
-                        View History
-                      </Button>
-                      <Button>Add Prescription</Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <DiseasePrediction />
         </TabsContent>
       </Tabs>
-      
-      {showPrescriptionForm && (
-        <Card className="col-span-2">
-          <CardHeader>
-            <CardTitle>New Prescription</CardTitle>
-            <CardDescription>Create a prescription for your patient</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Patient</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select patient" />
-                </SelectTrigger>
-                <SelectContent>
-                  {patientDetails.map((patient) => (
-                    <SelectItem key={patient.id} value={patient.name}>
-                      {patient.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Diagnosis</Label>
-              <Input placeholder="Enter diagnosis" />
-            </div>
-            <div className="space-y-2">
-              <Label>Prescription Details</Label>
-              <Textarea
-                placeholder="Enter medication details, dosage, and instructions"
-                className="min-h-[100px]"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Additional Notes</Label>
-              <Textarea
-                placeholder="Any additional notes or recommendations"
-                className="min-h-[100px]"
-              />
-            </div>
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={() => setShowPrescriptionForm(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => {
-              toast.success('Prescription saved successfully');
-              setShowPrescriptionForm(false);
-            }}>
-              Save Prescription
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
-      
-      {selectedPatient && (
-        <Card className="col-span-2">
-          <CardHeader>
-            <CardTitle>Patient History - {selectedPatient}</CardTitle>
-            <CardDescription>View patient's medical history and previous prescriptions</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="border-b pb-4">
-                <h3 className="font-semibold mb-2">Previous Visits</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>March 15, 2024</span>
-                    <span>Regular Checkup</span>
-                    <span>Dr. Reynolds</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>February 28, 2024</span>
-                    <span>Follow-up</span>
-                    <span>Dr. Reynolds</span>
-                  </div>
-                </div>
-              </div>
-              <div className="border-b pb-4">
-                <h3 className="font-semibold mb-2">Current Medications</h3>
-                <ul className="list-disc list-inside space-y-1 text-sm">
-                  <li>Metformin 500mg - Twice daily</li>
-                  <li>Lisinopril 10mg - Once daily</li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2">Recent Test Results</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Blood Pressure</span>
-                    <span>120/80 mmHg</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Blood Sugar</span>
-                    <span>98 mg/dL</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" className="w-full" onClick={() => setSelectedPatient('')}>
-              Close
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
+      <HealthAssistantChat open={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </div>
   );
 } 

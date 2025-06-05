@@ -2,20 +2,11 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from '../../lib/axios';
 
-interface Prediction {
-  disease: string;
-  probability: number;
-}
-
 export default function DiseasePrediction() {
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
-  const [symptomsInput, setSymptomsInput] = useState('');
-  const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(false);
   const [prediction, setPrediction] = useState<string | null>(null);
   const [departments, setDepartments] = useState<string[]>([]);
@@ -161,17 +152,6 @@ export default function DiseasePrediction() {
         ? prev.filter(s => s !== symptom) 
         : [...prev, symptom]
     );
-  };
-
-  const handleSymptomInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSymptomsInput(e.target.value);
-  };
-
-  const addCustomSymptom = () => {
-    if (symptomsInput.trim() && !selectedSymptoms.includes(symptomsInput.trim())) {
-      setSelectedSymptoms([...selectedSymptoms, symptomsInput.trim()]);
-      setSymptomsInput('');
-    }
   };
 
   const predictDisease = async () => {

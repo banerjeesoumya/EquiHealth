@@ -30,7 +30,7 @@ interface Appointment {
 }
 
 export default function Appointments() {
-  const { user } = useAuth();
+  useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
