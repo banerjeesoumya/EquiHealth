@@ -6,6 +6,8 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { heroImage, doctorImage, mobileAppImage, avatars } from '../assets/images';
 import { useRef, useState, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
+import { useAuth } from '../contexts/AuthContext';
+import AuthenticatedLanding from './AuthenticatedLanding';
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -27,7 +29,7 @@ const scaleIn = {
   visible: { scale: 1, opacity: 1, transition: { duration: 0.5 } }
 };
 
-export default function Landing() {
+function UnauthenticatedLanding() {
   const containerRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -287,6 +289,16 @@ export default function Landing() {
       </section>
     </div>
   );
+}
+
+export default function Landing() {
+  const { user } = useAuth();
+  
+  if (user) {
+    return <AuthenticatedLanding />;
+  }
+  
+  return <UnauthenticatedLanding />;
 }
 
 interface CounterCardProps {

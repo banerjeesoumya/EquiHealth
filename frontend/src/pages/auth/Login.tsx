@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
@@ -7,15 +7,22 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
-import { defaultCredentials } from '../../lib';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [role, setRole] = useState<'patient' | 'doctor' | 'admin'>('patient');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'admin') navigate('/admin/dashboard');
+      else if (user.role === 'doctor') navigate('/doctor/dashboard');
+      else navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -24,41 +31,10 @@ export default function Login() {
     try {
       await login(email, password, role);
       toast.success('Logged in successfully');
-      
-      switch (role) {
-        case 'admin':
-          navigate('/admin/dashboard');
-          break;
-        case 'doctor':
-          navigate('/doctor/dashboard');
-          break;
-        case 'patient':
-          navigate('/dashboard');
-          break;
-        default:
-          navigate('/dashboard');
-      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to login');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const fillDemoCredentials = () => {
-    switch (role) {
-      case 'patient':
-        setEmail(defaultCredentials.patient.email);
-        setPassword(defaultCredentials.patient.password);
-        break;
-      case 'doctor':
-        setEmail(defaultCredentials.doctor.email);
-        setPassword(defaultCredentials.doctor.password);
-        break;
-      case 'admin':
-        setEmail(defaultCredentials.admin.email);
-        setPassword(defaultCredentials.admin.password);
-        break;
     }
   };
 
@@ -115,16 +91,6 @@ export default function Login() {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Signing in...' : 'Sign In'}
             </Button>
-            <Button type="button" variant="outline" className="w-full" onClick={fillDemoCredentials}>
-              Use Demo Credentials
-            </Button>
-            {/* <div className="text-sm text-muted-foreground space-y-2 mt-2">
-              <p className="font-semibold text-center">Demo Credentials:</p>
-              <p><strong>Patient:</strong> {defaultCredentials.patient.email}</p>
-              <p><strong>Doctor:</strong> {defaultCredentials.doctor.email}</p>
-              <p><strong>Admin:</strong> {defaultCredentials.admin.email}</p>
-              <p className="text-xs text-center mt-2">All passwords: {defaultCredentials.patient.password}</p>
-            </div> */}
           </CardFooter>
         </form>
       </Card>

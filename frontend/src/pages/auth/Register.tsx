@@ -9,11 +9,20 @@ import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
 
+const DEPARTMENTS = [
+  "Cardiology",
+  "Neurology",
+  "Orthopedics",
+  "Gastroenterology",
+  "Endocrinology"
+];
+
 export default function Register() {
   const navigate = useNavigate();
   const { register } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [role, setRole] = useState<'user' | 'doctor'>('user');
+  const [specialization, setSpecialization] = useState('');
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -23,38 +32,35 @@ export default function Register() {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     const name = formData.get('name') as string;
+    const age = formData.get('age') as string;
+    const height = formData.get('height') as string;
+    const weight = formData.get('weight') as string;
+    const gender = formData.get('gender') as 'male' | 'female' | 'other';
 
     const registrationData: any = {
       email,
       password,
       name,
       role,
+      specialization: role === 'doctor' ? specialization : undefined,
+      age: role === 'user' ? Number(age) : undefined,
+      height: role === 'user' ? Number(height) : undefined,
+      weight: role === 'user' ? Number(weight) : undefined,
+      gender: role === 'user' ? gender : undefined,
     };
 
     if (role === 'user') {
-      const age = parseInt(formData.get('age') as string);
-      const height = parseInt(formData.get('height') as string);
-      const weight = parseInt(formData.get('weight') as string);
-      const gender = formData.get('gender') as 'male' | 'female' | 'other';
-
-      if (isNaN(age) || isNaN(height) || isNaN(weight) || !gender) {
+      if (isNaN(Number(age)) || isNaN(Number(height)) || isNaN(Number(weight)) || !gender) {
         toast.error('Please fill in all required fields with valid values');
         setIsLoading(false);
         return;
       }
-
-      registrationData.age = age;
-      registrationData.height = height;
-      registrationData.weight = weight;
-      registrationData.gender = gender;
     } else if (role === 'doctor') {
-      const specialization = formData.get('specialization') as string;
       if (!specialization || specialization.length < 3) {
         toast.error('Please enter a valid specialization (minimum 3 characters)');
         setIsLoading(false);
         return;
       }
-      registrationData.specialization = specialization;
     }
 
     try {
@@ -194,14 +200,19 @@ export default function Register() {
 
             {role === 'doctor' && (
               <div className="space-y-2">
-                <Label htmlFor="specialization">Specialization</Label>
-                <Input
-                  id="specialization"
-                  name="specialization"
-                  placeholder="Enter your medical specialization"
-                  required
-                  minLength={3}
-                />
+                <Label htmlFor="specialization">Department</Label>
+                <Select value={specialization} onValueChange={setSpecialization}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEPARTMENTS.map((dept) => (
+                      <SelectItem key={dept} value={dept}>
+                        {dept}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </CardContent>
