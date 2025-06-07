@@ -2,9 +2,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Activity, Calendar, Heart, Scale, Stethoscope, MessageSquare, Flame } from 'lucide-react';
 import { Button } from '../ui/button';
+import { useNavigate } from 'react-router-dom';
 
 export default function Overview() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   if (!user) return <div>Loading...</div>;
 
@@ -12,6 +14,22 @@ export default function Overview() {
   const heartRate = (user as any).heartRate ?? 72; // bpm
   const dailySteps = (user as any).dailySteps ?? 8500;
   const caloriesBurned = (user as any).caloriesBurned ?? 2200; // kcal
+
+  const handleBookAppointment = () => {
+    navigate('/dashboard?tab=book');
+  };
+
+  const handleCheckSymptoms = () => {
+    navigate('/dashboard?tab=predict');
+  };
+
+  const handleHealthAssistant = () => {
+    navigate('/dashboard?tab=overview', { state: { openChat: true } });
+  };
+
+  const handleTrackVitals = () => {
+    navigate('/dashboard?tab=profile');
+  };
 
   return (
     <div className="space-y-4">
@@ -72,19 +90,35 @@ export default function Overview() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
-              <Button className="h-20 flex flex-col items-center justify-center text-base font-semibold" variant="default">
+              <Button 
+                className="h-20 flex flex-col items-center justify-center text-base font-semibold" 
+                variant="default"
+                onClick={handleBookAppointment}
+              >
                 <Calendar className="mb-2 h-6 w-6" />
                 Book Appointment
               </Button>
-              <Button className="h-20 flex flex-col items-center justify-center text-base font-semibold" variant="outline">
+              <Button 
+                className="h-20 flex flex-col items-center justify-center text-base font-semibold" 
+                variant="outline"
+                onClick={handleCheckSymptoms}
+              >
                 <Stethoscope className="mb-2 h-6 w-6" />
                 Check Symptoms
               </Button>
-              <Button className="h-20 flex flex-col items-center justify-center text-base font-semibold" variant="outline">
+              <Button 
+                className="h-20 flex flex-col items-center justify-center text-base font-semibold" 
+                variant="outline"
+                onClick={handleHealthAssistant}
+              >
                 <MessageSquare className="mb-2 h-6 w-6" />
                 Ask Health Assistant
               </Button>
-              <Button className="h-20 flex flex-col items-center justify-center text-base font-semibold" variant="outline">
+              <Button 
+                className="h-20 flex flex-col items-center justify-center text-base font-semibold" 
+                variant="outline"
+                onClick={handleTrackVitals}
+              >
                 <Activity className="mb-2 h-6 w-6" />
                 Track Vitals
               </Button>

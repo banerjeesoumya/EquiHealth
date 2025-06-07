@@ -6,6 +6,8 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { heroImage, doctorImage, mobileAppImage, avatars } from '../assets/images';
 import { useRef, useState, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
+import { useAuth } from '../contexts/AuthContext';
+import AuthenticatedLanding from './AuthenticatedLanding';
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -33,12 +35,19 @@ export default function Landing() {
     target: containerRef,
     offset: ["start start", "end end"]
   });
+  const { user } = useAuth();
 
   const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
 
+  // If user is authenticated, show the authenticated landing page
+  if (user) {
+    return <AuthenticatedLanding />;
+  }
+
+  // Original landing page for unauthenticated users
   return (
     <div ref={containerRef} className="min-h-screen">
       <section className="relative py-20 px-4 text-center overflow-hidden">

@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../..
 import { Button } from '../../components/ui/button';
 import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
 import { Label } from '../../components/ui/label';
-import { Progress } from '../../components/ui/progress';
 import { ClipboardList, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface Question {
@@ -276,7 +275,7 @@ const Assessment: React.FC = () => {
                       <p className="text-muted-foreground">Total Score</p>
                     </div>
                     {(() => {
-                      const [level, interpretation] = getInterpretation(calculateScore()) || [];
+                      const [, interpretation] = getInterpretation(calculateScore()) || [];
                       return (
                         <div className={`p-6 rounded-lg ${
                           interpretation?.severity === 'high'

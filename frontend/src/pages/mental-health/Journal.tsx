@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../..
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
 import { Input } from '../../components/ui/input';
-import { PenTool, Calendar, Clock, Search, Filter, Trash2, Edit2 } from 'lucide-react';
+import { PenTool, Calendar, Clock, Search, Trash2, Edit2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface JournalEntry {

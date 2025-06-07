@@ -6,11 +6,6 @@ import { Input } from '../ui/input';
 import { toast } from 'sonner';
 import axios from '../../lib/axios';
 
-interface Prediction {
-  disease: string;
-  probability: number;
-}
-
 export default function DiseasePrediction() {
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [symptomsInput, setSymptomsInput] = useState('');
