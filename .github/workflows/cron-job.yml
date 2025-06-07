@@ -45,23 +45,4 @@ jobs:
             exit 1
           fi
           echo "predictDisease Response: $response"
-
-      - name: Hit /food-info API
-        run: |
-          response=$(curl -s "$BASE_URL/user/food-info?foodName=Tedhe Medhe" \
-            -H "Authorization: Bearer $TOKEN")
-          if [ $? -ne 0 ]; then
-            echo "Failed to call food-info API"
-            exit 1
-          fi
-          echo "food-info Response: $response"
-
-      - name: Hit /health-score API
-        run: |
-          response=$(curl -s "$BASE_URL/user/health-score?foodName=Tedhe Medhe" \
-            -H "Authorization: Bearer $TOKEN")
-          if [ $? -ne 0 ]; then
-            echo "Failed to call health-score API"
-            exit 1
-          fi
-          echo "health-score Response: $response"
+      
