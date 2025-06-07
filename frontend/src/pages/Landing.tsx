@@ -29,25 +29,18 @@ const scaleIn = {
   visible: { scale: 1, opacity: 1, transition: { duration: 0.5 } }
 };
 
-export default function Landing() {
+function UnauthenticatedLanding() {
   const containerRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end end"]
   });
-  const { user } = useAuth();
 
   const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
 
-  // If user is authenticated, show the authenticated landing page
-  if (user) {
-    return <AuthenticatedLanding />;
-  }
-
-  // Original landing page for unauthenticated users
   return (
     <div ref={containerRef} className="min-h-screen">
       <section className="relative py-20 px-4 text-center overflow-hidden">
@@ -296,6 +289,16 @@ export default function Landing() {
       </section>
     </div>
   );
+}
+
+export default function Landing() {
+  const { user } = useAuth();
+  
+  if (user) {
+    return <AuthenticatedLanding />;
+  }
+  
+  return <UnauthenticatedLanding />;
 }
 
 interface CounterCardProps {
