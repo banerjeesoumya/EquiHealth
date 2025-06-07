@@ -1,8 +1,10 @@
-name: Scheduled API Ping with Auth and Secrets
+name: API Health Check
 
 on:
+  push:
+    branches: [ main ]  # Add your branch names here
   schedule:
-    - cron: '0 0,5,10,15,20 * * *' 
+    - cron: '0 0,5,10,15,20 * * *' # 5 times a day
 
 env:
   BASE_URL: ${{ secrets.WORKER_URL }}
