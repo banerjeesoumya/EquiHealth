@@ -91,6 +91,7 @@ export default function Profile() {
                   value={formData.name}
                   onChange={handleInputChange}
                   disabled={!isEditing}
+                  aria-label="Name"
                 />
               </div>
               <div className="space-y-2">
@@ -101,6 +102,7 @@ export default function Profile() {
                   value={formData.email}
                   onChange={handleInputChange}
                   disabled={!isEditing}
+                  aria-label="Email"
                 />
               </div>
               <div className="space-y-2">
@@ -112,6 +114,7 @@ export default function Profile() {
                   value={formData.age}
                   onChange={handleInputChange}
                   disabled={!isEditing}
+                  aria-label="Age"
                 />
               </div>
               <div className="space-y-2">
@@ -122,6 +125,7 @@ export default function Profile() {
                   value={formData.gender}
                   onChange={handleInputChange}
                   disabled={!isEditing}
+                  aria-label="Gender"
                 />
               </div>
               <div className="space-y-2">
@@ -133,6 +137,7 @@ export default function Profile() {
                   value={formData.height}
                   onChange={handleInputChange}
                   disabled={!isEditing}
+                  aria-label="Height (cm)"
                 />
               </div>
               <div className="space-y-2">
@@ -144,6 +149,7 @@ export default function Profile() {
                   value={formData.weight}
                   onChange={handleInputChange}
                   disabled={!isEditing}
+                  aria-label="Weight (kg)"
                 />
               </div>
             </div>
