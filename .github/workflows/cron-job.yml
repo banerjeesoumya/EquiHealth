@@ -39,7 +39,7 @@ jobs:
           response=$(curl -s -X POST "$BASE_URL/user/predictDisease" \
             -H "Authorization: Bearer $TOKEN" \
             -H "Content-Type: application/json" \
-            -d '{"symptoms":["fever","cough"]}')
+            -d '{"symptoms":["itching" , "skin_rash"]}')
           if [ $? -ne 0 ]; then
             echo "Failed to call predictDisease API"
             exit 1
@@ -48,7 +48,7 @@ jobs:
 
       - name: Hit /food-info API
         run: |
-          response=$(curl -s "$BASE_URL/user/food-info?foodName=apple" \
+          response=$(curl -s "$BASE_URL/user/food-info?foodName=Tedhe Medhe" \
             -H "Authorization: Bearer $TOKEN")
           if [ $? -ne 0 ]; then
             echo "Failed to call food-info API"
@@ -58,7 +58,7 @@ jobs:
 
       - name: Hit /health-score API
         run: |
-          response=$(curl -s "$BASE_URL/user/health-score?foodName=apple" \
+          response=$(curl -s "$BASE_URL/user/health-score?foodName=Tedhe Medhe" \
             -H "Authorization: Bearer $TOKEN")
           if [ $? -ne 0 ]; then
             echo "Failed to call health-score API"
