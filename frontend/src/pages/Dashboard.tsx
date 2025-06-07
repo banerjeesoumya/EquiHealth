@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import axios from '../lib/axios';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Overview from '../components/dashboard/Overview';
 import Profile from '../components/dashboard/Profile';
 import BookAppointment from '../components/dashboard/BookAppointment';
@@ -13,62 +13,29 @@ import HealthAssistantChat from '../components/dashboard/HealthAssistantChat';
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
-  const [userData, setUserData] = useState<any>(null);
-  const [appointments, setAppointments] = useState<any[]>([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  
-  const fetchAppointments = useCallback(async () => {
-    try {
-      const appointmentsRes = await axios.get('/user/getAppointments');
-      setAppointments(appointmentsRes.data.appointments || []);
-    } catch (err: any) {
-      console.error('Error fetching appointments:', err);
-    }
-  }, []);
 
+  // Handle URL parameters and state
   useEffect(() => {
-    fetchAppointments();
-  }, [fetchAppointments]);
-
-  useEffect(() => {
-    let currentPatient: any = null;
-    let patientIdForAppointments: number | string | null = null;
-
-    if (user && (user.role === 'patient' || user.role === 'user')) {
-      currentPatient = {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        age: user.age ?? 30, 
-        gender: user.gender ?? 'male',
-        height: user.height ?? 175,
-        weight: user.weight ?? 70,
-        bmi: user.bmi ?? 24.5,
-        medicalHistory: user.medicalHistory ?? [],
-        lastVisit: user.lastVisit ?? '2024-03-01',
-        nextAppointment: user.nextAppointment ?? '2024-04-15'
-      };
-      patientIdForAppointments = user.id;
-    } else {
-      currentPatient = null;
-      patientIdForAppointments = null;
+    const searchParams = new URLSearchParams(location.search);
+    const tab = searchParams.get('tab');
+    if (tab) {
+      setActiveTab(tab);
     }
 
-    setUserData(currentPatient);
-
-    if (patientIdForAppointments) {
-      const patientAppointments = appointments.filter(
-        appointment => appointment.patientId === patientIdForAppointments
-      );
-      setAppointments(patientAppointments);
-    } else {
-      setAppointments([]);
+    // Check if we should open the chat
+    if (location.state?.openChat) {
+      setIsChatOpen(true);
+      // Clear the state to prevent reopening on refresh
+      navigate(location.pathname + location.search, { replace: true });
     }
-  }, [user, appointments]);
+  }, [location, navigate]);
 
-  if (!userData) {
-    return <div className="container py-8 text-center">Loading patient data...</div>;
+  if (!user) {
+    return <div className="container py-8 text-center">Loading...</div>;
   }
 
   return (
@@ -88,7 +55,7 @@ export default function Dashboard() {
           Health Assistant
         </Button>
       </div>
-      {/* Tabs Section */}
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="w-full flex bg-muted rounded-xl p-1 mb-6">
           <TabsTrigger value="overview" className="flex-1 data-[state=active]:bg-background data-[state=active]:font-bold data-[state=active]:shadow-sm rounded-lg transition-colors">
@@ -128,7 +95,8 @@ export default function Dashboard() {
           <DiseasePrediction />
         </TabsContent>
       </Tabs>
+
       <HealthAssistantChat open={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </div>
   );
-} 
+}
