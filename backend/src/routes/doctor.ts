@@ -518,3 +518,48 @@ doctorRouter.patch("/appointments/update-status", async (c) => {
         return c.json({ message: "Internal Server Error" });
     }
 });
+
+doctorRouter.get("/patients", async (c) => {
+    const prisma = new PrismaClient({ datasourceUrl: c.env.DATABASE_URL }).$extends(withAccelerate());
+    const doctorId = c.get("doctorId");
+  
+    try {
+      const appointments = await prisma.appointment.findMany({
+        where: { doctorId },
+        orderBy: { date: 'asc' },
+        include: {
+          user: true
+        }
+      });
+  
+      const uniqueMap = new Map<string, typeof appointments[0]>();
+      for (const a of appointments) {
+        if (!uniqueMap.has(a.userId)) {
+          uniqueMap.set(a.userId, a);
+        }
+      }
+  
+      const patients = Array.from(uniqueMap.values()).map((a) => {
+        const bmi = (a.user.weight / ((a.user.height / 100) ** 2)).toFixed(1); // height in cm to m
+        const nextAppointment = appointments.find(appt => appt.userId === a.userId && appt.date > new Date());
+  
+        return {
+          id: a.user.id,
+          name: a.user.name,
+          age: a.user.age,
+          bmi,
+          medicalHistory: ['Diabetes'], // replace with real data when you add this field
+          nextAppointment: nextAppointment?.date.toDateString() || "No upcoming"
+        };
+      });
+  
+      return c.json({
+        message: "Patients fetched successfully",
+        patients
+      });
+    } catch (e) {
+      console.error("❌ Error fetching patients:", e);
+      return c.json({ message: "Internal Server Error" }, 500);
+    }
+  });
+  

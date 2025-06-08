@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { DatePicker } from '../../components/ui/date-picker';
 import { addDays } from 'date-fns';
 import axios from '../../lib/axios';
+import { useSearchParams } from 'react-router-dom';
 
 const generateTimeSlots = () => {
   const slots = [];
@@ -29,11 +30,17 @@ const timeSlots = generateTimeSlots();
 
 export default function DoctorDashboard() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [selectedPatient, setSelectedPatient] = useState('');
   const [showPrescriptionForm, setShowPrescriptionForm] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get('tab');
+    return tab && ['overview', 'appointments', 'availability', 'patients'].includes(tab) 
+      ? tab 
+      : 'overview';
+  });
   const [appointmentStatus, setAppointmentStatus] = useState<Record<number, string>>({});
   const [doctorData, setDoctorData] = useState<any>(null);
   const [filteredAppointments, setFilteredAppointments] = useState<any[]>([]);
@@ -55,20 +62,35 @@ export default function DoctorDashboard() {
         time: a.slot
       }));
       setFilteredAppointments(normalized);
+    } catch (err: any) {
+      if (err.response?.data?.message === "No appointments found for this doctor.") {
+        setFilteredAppointments([]);
+      } else {
+        setError(err.response?.data?.message || 'Failed to fetch data');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      // Fetch patient details
+  const fetchPatientData = async () => {
+    try {
       const patientsRes = await axios.get('/doctor/patients');
       setPatientDetails(patientsRes.data.patients || []);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch data');
-    } finally {
-      setLoading(false);
+      toast.error('Failed to fetch patient data');
     }
   };
 
   useEffect(() => {
     fetchData();
   }, [user]);
+
+  useEffect(() => {
+    if (activeTab === 'patients') {
+      fetchPatientData();
+    }
+  }, [activeTab]);
 
   const toggleSlot = (slot: string) => {
     if (selectedSlots.includes(slot)) {
@@ -210,12 +232,12 @@ export default function DoctorDashboard() {
                   <CardContent>
                     <div className="text-2xl font-bold">
                       {filteredAppointments.filter(a => 
-                        a.date === new Date().toISOString().split('T')[0]).length || 3}
+                        a.date === new Date().toISOString().split('T')[0]).length}
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {filteredAppointments.filter(a => 
                         a.date === new Date().toISOString().split('T')[0] && 
-                        a.status !== 'COMPLETED').length || 2} consultations left
+                        a.status !== 'COMPLETED').length} consultations left
                     </p>
                   </CardContent>
                 </Card>
@@ -249,29 +271,35 @@ export default function DoctorDashboard() {
                   <CardDescription>Your upcoming and recent appointments</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {filteredAppointments.slice(0, 3).map((appointment) => (
-                      <div key={appointment.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="space-y-1">
-                          <p className="font-medium">{appointment.patient}</p>
-                          <p className="text-sm text-muted-foreground">{appointment.type}</p>
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <Calendar className="mr-1 h-4 w-4" />
-                            {appointment.date} at {appointment.time}
+                  {filteredAppointments.length === 0 ? (
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground">No appointments scheduled yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {filteredAppointments.slice(0, 3).map((appointment) => (
+                        <div key={appointment.id} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="space-y-1">
+                            <p className="font-medium">{appointment.patient}</p>
+                            <p className="text-sm text-muted-foreground">{appointment.type}</p>
+                            <div className="flex items-center text-sm text-muted-foreground">
+                              <Calendar className="mr-1 h-4 w-4" />
+                              {appointment.date} at {appointment.time}
+                            </div>
+                          </div>
+                          <div className="text-sm font-medium">
+                            <span className={`px-2 py-1 rounded-full ${
+                              appointment.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                              appointment.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {appointment.status}
+                            </span>
                           </div>
                         </div>
-                        <div className="text-sm font-medium">
-                          <span className={`px-2 py-1 rounded-full ${
-                            appointment.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                            appointment.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {appointment.status}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
                 <CardFooter>
                   <Button variant="outline" className="w-full" onClick={() => setActiveTab("appointments")}>
@@ -293,36 +321,56 @@ export default function DoctorDashboard() {
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {filteredAppointments.map((appointment) => (
-                      <div key={appointment.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="space-y-1">
-                          <p className="font-medium">{appointment.patient}</p>
-                          <p className="text-sm text-muted-foreground">{appointment.type}</p>
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <Calendar className="mr-1 h-4 w-4" />
-                            {appointment.date} at {appointment.time}
+                  {filteredAppointments.length === 0 ? (
+                    <div className="text-center py-8 space-y-4">
+                      <Calendar className="mx-auto h-12 w-12 text-muted-foreground" />
+                      <div className="space-y-2">
+                        <h3 className="text-lg font-semibold">No Upcoming Appointments</h3>
+                        <p className="text-muted-foreground">
+                          Thank you for joining our platform! We'll notify you as soon as you receive any appointments.
+                          Feel free to set your availability in the meantime.
+                        </p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setActiveTab("availability")}
+                        className="mt-4"
+                      >
+                        Set Your Availability
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {filteredAppointments.map((appointment) => (
+                        <div key={appointment.id} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="space-y-1">
+                            <p className="font-medium">{appointment.patient}</p>
+                            <p className="text-sm text-muted-foreground">{appointment.type}</p>
+                            <div className="flex items-center text-sm text-muted-foreground">
+                              <Calendar className="mr-1 h-4 w-4" />
+                              {appointment.date} at {appointment.time}
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Select 
+                              defaultValue={appointment.status}
+                              onValueChange={(value) => updateAppointmentStatus(appointment.id, value)}
+                            >
+                              <SelectTrigger className="w-36">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="PENDING">PENDING</SelectItem>
+                                <SelectItem value="CONFIRMED">CONFIRMED</SelectItem>
+                                <SelectItem value="COMPLETED">COMPLETED</SelectItem>
+                                <SelectItem value="CANCELLED">CANCELLED</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
-                        <div className="flex space-x-2">
-                          <Select 
-                            defaultValue={appointment.status}
-                            onValueChange={(value) => updateAppointmentStatus(appointment.id, value)}
-                          >
-                            <SelectTrigger className="w-36">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="PENDING">PENDING</SelectItem>
-                              <SelectItem value="CONFIRMED">CONFIRMED</SelectItem>
-                              <SelectItem value="COMPLETED">COMPLETED</SelectItem>
-                              <SelectItem value="CANCELLED">CANCELLED</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
