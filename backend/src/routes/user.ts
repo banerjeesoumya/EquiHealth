@@ -14,6 +14,7 @@ export const userRouter = new Hono<{
         FLASK_SERVICE: string
         OPENROUTER_API_KEY: string
         OPENROUTER_BASE_URL: string
+        SENDGRID_API_KEY: string
     }, Variables:{
         userId: string
         role: string
@@ -115,7 +116,6 @@ userRouter.post("/signin", async (c) => {
                 message: "User doesn't exist. Please create an account"
             })
         }
-
         const token = await sign({
             id: user.id,
             role: user.role
@@ -361,6 +361,17 @@ userRouter.post("/bookAppointment", async (c) => {
     }
 
     try {
+        // Get user and doctor details for email
+        const [user, doctor] = await Promise.all([
+            prisma.user.findUnique({ where: { id: userId } }),
+            prisma.doctor.findUnique({ where: { id: correctAppointmentBody.data.doctorId } })
+        ]);
+
+        if (!user || !doctor) {
+            c.status(404);
+            return c.json({ message: "User or doctor not found" });
+        }
+
         const doctorAvailability = await prisma.doctorAvailability.findFirst({
             where: { 
                 doctorId: correctAppointmentBody.data.doctorId, 
@@ -412,13 +423,90 @@ userRouter.post("/bookAppointment", async (c) => {
             }
         });
 
-        c.status(200);
-        return c.json({ message: "Appointment booked successfully", appointment });
+        const sendEmail = async (to: string, subject: string, html: string, retries = 3) => {
+            for (let attempt = 1; attempt <= retries; attempt++) {
+                try {
+                    const response = await axios.post('https://api.sendgrid.com/v3/mail/send', {
+                        personalizations: [{ to: [{ email: to }] }],
+                        from: { email: 'equihealthh@gmail.com', name: 'EquiHealth' },
+                        subject: subject,
+                        content: [{ type: 'text/html', value: html }]
+                    }, {
+                        headers: {
+                            'Authorization': `Bearer ${c.env.SENDGRID_API_KEY}`,
+                            'Content-Type': 'application/json',
+                        },
+                        timeout: 10000 // 10 second timeout
+                    });
 
-    } catch (e) {
-        console.error(e);
+                    if (response.status === 202) {
+                        console.log(`Email sent successfully to ${to}`);
+                        return true;
+                    }
+                } catch (error: any) {
+                    const errorMessage = error.response?.data?.message || error.message;
+                    console.error(`Attempt ${attempt}/${retries} failed to send email to ${to}:`, errorMessage);
+                    
+                    if (attempt === retries) {
+                        console.error(`Failed to send email after ${retries} attempts to ${to}`);
+                        return false;
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+                }
+            }
+            return false;
+        };
+
+        const emailPromises = [
+            sendEmail(
+                user.email,
+                'Appointment Confirmed',
+                `<p>Hi ${user.name},</p>
+                <p>Your appointment with Dr. ${doctor.name} on <strong>${correctAppointmentBody.data.date}</strong> at <strong>${selectedSlot}</strong> has been booked successfully.</p>
+                <p>Status: <strong>PENDING</strong></p>
+                <p>We'll notify you once the doctor updates the appointment status.</p>
+                <p>- EquiHealth Team</p>`
+            ),
+            sendEmail(
+                doctor.email,
+                'New Appointment Booked',
+                `<p>Hi Dr. ${doctor.name},</p>
+                <p>A new appointment has been booked for <strong>${correctAppointmentBody.data.date}</strong> at <strong>${selectedSlot}</strong> by ${user.name}.</p>
+                <p>Please visit your dashboard to update the appointment status.</p>
+                <p>- EquiHealth System</p>`
+            )
+        ];
+
+        // Wait for all email attempts to complete
+        const emailResults = await Promise.allSettled(emailPromises);
+        
+        // Log email sending results
+        emailResults.forEach((result, index) => {
+            const recipient = index === 0 ? user.email : doctor.email;
+            if (result.status === 'fulfilled') {
+                console.log(`Email to ${recipient} ${result.value ? 'sent successfully' : 'failed after retries'}`);
+            } else {
+                console.error(`Email to ${recipient} failed with error:`, result.reason);
+            }
+        });
+
+        c.status(200);
+        return c.json({ 
+            message: "Appointment booked successfully", 
+            appointment,
+            emailStatus: {
+                userEmailSent: emailResults[0].status === 'fulfilled' && emailResults[0].value,
+                doctorEmailSent: emailResults[1].status === 'fulfilled' && emailResults[1].value
+            }
+        });
+
+    } catch (e: any) {
+        console.error('Appointment booking error:', e);
         c.status(500);
-        return c.json({ message: "Internal Server Error" });
+        return c.json({ 
+            message: "Internal Server Error"
+        });
     }
 });
 
@@ -582,7 +670,6 @@ userRouter.post("/chat-support", async (c) => {
             messages: messages,
         });
 
-        // Extract the assistant's reply
         const reply = response.choices?.[0]?.message?.content || "Sorry, I could not generate a response.";
         c.status(200);
         return c.json({

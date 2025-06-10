@@ -4,11 +4,13 @@ import { withAccelerate } from "@prisma/extension-accelerate";
 import { sign, verify } from "hono/jwt";
 import { appointmentUpdateSchema, availabilitySchema, signinSchema, signupSchema } from "../utils/doctorType";
 import { formatDate } from "../utils/userType";
+import axios from "axios";
 
 export const doctorRouter = new Hono<{
     Bindings:{
         DATABASE_URL: string
         JWT_SECRET: string
+        SENDGRID_API_KEY: string
     }, Variables: {
         doctorId: string
         role: string
@@ -490,7 +492,11 @@ doctorRouter.patch("/appointments/update-status", async (c) => {
 
     try {
         const appointment = await prisma.appointment.findUnique({
-            where: { id: appointmentId }
+            where: { id: appointmentId },
+            include: {
+                user: true,
+                doctor: true
+            }
         });
 
         if (!appointment) {
@@ -510,8 +516,42 @@ doctorRouter.patch("/appointments/update-status", async (c) => {
             }
         });
 
+        // Send email notification to user
+        try {
+            const response = await axios.post('https://api.sendgrid.com/v3/mail/send', {
+                personalizations: [{ to: [{ email: appointment.user.email }] }],
+                from: { email: 'equihealthh@gmail.com', name: 'EquiHealth' },
+                subject: `Appointment Status Updated - ${stat}`,
+                content: [{ 
+                    type: 'text/html', 
+                    value: `<p>Hi ${appointment.user.name},</p>
+                    <p>Your appointment with Dr. ${appointment.doctor.name} on <strong>${appointment.date.toDateString()}</strong> at <strong>${appointment.slot}</strong> has been <strong>${stat}</strong>.</p>
+                    ${stat === 'CONFIRMED' ? '<p>Please be ready for your appointment at the scheduled time.</p>' : ''}
+                    ${stat === 'CANCELLED' ? '<p>If you would like to reschedule, please book a new appointment.</p>' : ''}
+                    <p>– EquiHealth Team</p>`
+                }]
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${c.env.SENDGRID_API_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+                timeout: 10000 // 10 second timeout
+            });
+
+            if (response.status === 202) {
+                console.log(`Status update email sent successfully to ${appointment.user.email}`);
+            }
+        } catch (emailError) {
+            console.error('Failed to send status update email:', emailError);
+            // Don't fail the appointment update if email fails
+        }
+
         c.status(200);
-        return c.json({ message: "Appointment status updated successfully.", appointment: updatedAppointment });
+        return c.json({ 
+            message: "Appointment status updated successfully.", 
+            appointment: updatedAppointment,
+            emailSent: true
+        });
     } catch (error) {
         console.error("❌ Error updating appointment status:", error);
         c.status(500);
@@ -548,7 +588,7 @@ doctorRouter.get("/patients", async (c) => {
           name: a.user.name,
           age: a.user.age,
           bmi,
-          medicalHistory: ['Diabetes'], // replace with real data when you add this field
+          medicalHistory: ['Diabetes'], 
           nextAppointment: nextAppointment?.date.toDateString() || "No upcoming"
         };
       });
