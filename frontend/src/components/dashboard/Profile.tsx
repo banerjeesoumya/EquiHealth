@@ -58,7 +58,7 @@ export default function Profile() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await axios.put('/user/updateProfile', formData);
+      await axios.put('/user/update', formData);
       toast.success('Profile updated successfully');
       setIsEditing(false);
       // Refresh user data

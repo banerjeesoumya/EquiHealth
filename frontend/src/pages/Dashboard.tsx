@@ -57,23 +57,32 @@ export default function Dashboard() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="w-full flex bg-muted rounded-xl p-1 mb-6">
-          <TabsTrigger value="overview" className="flex-1 data-[state=active]:bg-background data-[state=active]:font-bold data-[state=active]:shadow-sm rounded-lg transition-colors">
+        <TabsList className="w-full flex bg-muted rounded-full p-2 mb-6 gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-muted/60 scrollbar-track-transparent">
+          <TabsTrigger value="overview" className="flex-1 min-w-[140px] px-4 py-2 md:py-3 rounded-full text-sm md:text-base font-semibold transition-colors shadow-sm data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105">
             Overview
           </TabsTrigger>
-          <TabsTrigger value="profile" className="flex-1 data-[state=active]:bg-background data-[state=active]:font-bold data-[state=active]:shadow-sm rounded-lg transition-colors">
+          <TabsTrigger value="profile" className="flex-1 min-w-[140px] px-4 py-2 md:py-3 rounded-full text-sm md:text-base font-semibold transition-colors shadow-sm data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105">
             Profile
           </TabsTrigger>
-          <TabsTrigger value="appointments" className="flex-1 data-[state=active]:bg-background data-[state=active]:font-bold data-[state=active]:shadow-sm rounded-lg transition-colors">
+          <TabsTrigger value="appointments" className="flex-1 min-w-[140px] px-4 py-2 md:py-3 rounded-full text-sm md:text-base font-semibold transition-colors shadow-sm data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105">
             My Appointments
           </TabsTrigger>
-          <TabsTrigger value="book" className="flex-1 data-[state=active]:bg-background data-[state=active]:font-bold data-[state=active]:shadow-sm rounded-lg transition-colors">
+          <TabsTrigger value="book" className="flex-1 min-w-[140px] px-4 py-2 md:py-3 rounded-full text-sm md:text-base font-semibold transition-colors shadow-sm data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105">
             Book Appointment
           </TabsTrigger>
-          <TabsTrigger value="predict" className="flex-1 data-[state=active]:bg-background data-[state=active]:font-bold data-[state=active]:shadow-sm rounded-lg transition-colors">
+          <TabsTrigger value="predict" className="flex-1 min-w-[140px] px-4 py-2 md:py-3 rounded-full text-sm md:text-base font-semibold transition-colors shadow-sm data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105">
             Disease Prediction
           </TabsTrigger>
         </TabsList>
+        <style>{`
+          @media (max-width: 768px) {
+            .dashboard-tabs-list {
+              flex-direction: column !important;
+              gap: 0.5rem !important;
+              align-items: stretch !important;
+            }
+          }
+        `}</style>
 
         <TabsContent value="overview" className="space-y-4">
           <Overview />
