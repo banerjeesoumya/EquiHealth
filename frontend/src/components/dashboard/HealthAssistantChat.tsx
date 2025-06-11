@@ -108,16 +108,19 @@ export default function HealthAssistantChat({ open, onClose }: { open: boolean; 
   if (!open) return null;
 
   return (
-    <div style={{ position: 'fixed', bottom: 32, right: 32, zIndex: 1000 }}>
-      <Card className="w-[580px] shadow-lg border-primary border-2 rounded-xl flex flex-col bg-background">
-        <CardContent className="p-0 flex flex-col h-[550px]">
+    <div
+      style={{ position: 'fixed', bottom: 16, right: 16, left: 'auto', zIndex: 1000 }}
+      className="max-w-full md:right-8 md:bottom-8 md:left-auto w-full md:w-[400px] px-0 md:px-0 sm:px-2"
+    >
+      <Card className="w-full md:w-[400px] shadow-lg border-primary border-2 rounded-xl flex flex-col bg-background">
+        <CardContent className="p-0 flex flex-col h-[70vh] md:h-[550px]">
           <div className="flex items-center justify-between px-4 py-2 border-b bg-primary/10 rounded-t-xl">
             <span className="font-semibold text-primary">Health Assistant</span>
             <Button variant="ghost" size="icon" onClick={onClose} className="text-primary">
               <X size={18} />
             </Button>
           </div>
-          <div className="flex-1 overflow-y-auto px-4 py-2" style={{ maxHeight: 400 }}>
+          <div className="flex-1 overflow-y-auto px-4 py-2" style={{ maxHeight: 'calc(70vh - 100px)' }}>
             {messages.map((msg, idx) => (
               <div key={idx} className={`mb-2 flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                 aria-live={msg.sender === 'bot' ? 'polite' : undefined}
@@ -162,6 +165,17 @@ export default function HealthAssistantChat({ open, onClose }: { open: boolean; 
           </div>
         </CardContent>
       </Card>
+      <style>{`
+        @media (max-width: 768px) {
+          .health-chat-mobile {
+            left: 0 !important;
+            right: 0 !important;
+            width: 100vw !important;
+            max-width: 100vw !important;
+            border-radius: 0 !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

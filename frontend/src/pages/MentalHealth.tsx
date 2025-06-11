@@ -3,12 +3,9 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
   Brain, 
-  MessageCircle, 
-  Activity, 
   Headphones, 
   Trophy, 
   BookOpen, 
-  Users, 
   ClipboardList, 
   AlertCircle 
 } from 'lucide-react';
@@ -39,6 +36,7 @@ const staggerContainer = {
 
 const MentalHealth: React.FC = () => {
   const navigate = useNavigate();
+  const [showSupportAlert, setShowSupportAlert] = React.useState(false);
 
   useEffect(() => {
     // Add the script
@@ -48,29 +46,65 @@ const MentalHealth: React.FC = () => {
     script.type = 'text/javascript';
     document.body.appendChild(script);
 
-    // Add the widget
-    const widget = document.createElement('elevenlabs-convai');
-    widget.setAttribute('agent-id', 'agent_01jx0mq5qgfhha8yjwrbxwj9y9');
-    document.body.appendChild(widget);
+    let widget: HTMLElement | null = null;
+    const createWidget = () => {
+      widget = document.createElement('elevenlabs-convai');
+      widget.setAttribute('agent-id', 'agent_01jx0mq5qgfhha8yjwrbxwj9y9');
+      widget.style.position = 'fixed';
+      widget.style.bottom = '12px';
+      widget.style.right = '12px';
+      widget.style.zIndex = '9999';
+      widget.style.width = window.innerWidth <= 768 ? '90vw' : '360px';
+      widget.style.height = window.innerWidth <= 768 ? '220px' : '480px';
+      widget.style.maxWidth = '95vw';
+      widget.style.maxHeight = window.innerWidth <= 768 ? '220px' : '70vh';
+      widget.style.borderRadius = window.innerWidth <= 768 ? '12px' : '16px';
+      widget.id = 'elevenlabs-convai-widget';
+      document.body.appendChild(widget);
+    };
+
+    // Responsive adjustments for mobile
+    const setWidgetMobileStyle = () => {
+      const w = document.getElementById('elevenlabs-convai-widget');
+      if (!w) return;
+      if (window.innerWidth <= 768) {
+        w.style.width = '90vw';
+        w.style.height = '220px';
+        w.style.right = '12px';
+        w.style.left = 'auto';
+        w.style.bottom = '12px';
+        w.style.borderRadius = '12px';
+        w.style.maxWidth = '95vw';
+        w.style.maxHeight = '220px';
+      } else {
+        w.style.width = '360px';
+        w.style.height = '480px';
+        w.style.right = '16px';
+        w.style.left = 'auto';
+        w.style.bottom = '16px';
+        w.style.borderRadius = '16px';
+        w.style.maxWidth = '90vw';
+        w.style.maxHeight = '70vh';
+      }
+    };
+
+    createWidget();
+    setTimeout(setWidgetMobileStyle, 100);
+    window.addEventListener('resize', setWidgetMobileStyle);
 
     return () => {
-      document.body.removeChild(widget);
+      if (widget && widget.parentNode) widget.parentNode.removeChild(widget);
       document.body.removeChild(script);
+      window.removeEventListener('resize', setWidgetMobileStyle);
     };
   }, []);
 
   const features: FeatureCard[] = [
     {
-      title: "AI Chat Support",
-      description: "Talk to our empathetic AI assistant for immediate support and guidance",
-      icon: <MessageCircle className="w-8 h-8" />,
-      path: "/mental-health/chat"
-    },
-    {
-      title: "Mood Tracker",
-      description: "Track your daily mood, sleep, and stress levels with beautiful visualizations",
-      icon: <Activity className="w-8 h-8" />,
-      path: "/mental-health/mood-tracker"
+      title: "Smart Journal",
+      description: "Express yourself with our AI-powered journaling experience and track your daily mood, sleep, and stress levels—all in one place.",
+      icon: <BookOpen className="w-8 h-8" />,
+      path: "/mental-health/journal"
     },
     {
       title: "Guided Exercises",
@@ -85,18 +119,6 @@ const MentalHealth: React.FC = () => {
       path: "/mental-health/challenges"
     },
     {
-      title: "Smart Journal",
-      description: "Express yourself with our AI-powered journaling experience",
-      icon: <BookOpen className="w-8 h-8" />,
-      path: "/mental-health/journal"
-    },
-    {
-      title: "Community Support",
-      description: "Connect with others in a safe, moderated space",
-      icon: <Users className="w-8 h-8" />,
-      path: "/mental-health/community"
-    },
-    {
       title: "Self Assessment",
       description: "Take clinically validated assessments for anxiety and depression",
       icon: <ClipboardList className="w-8 h-8" />,
@@ -109,7 +131,6 @@ const MentalHealth: React.FC = () => {
   };
 
   return (
-    
     <div className="container mx-auto py-8 px-4">
       {/* Header */}
       <motion.div
@@ -143,13 +164,25 @@ const MentalHealth: React.FC = () => {
         className="mb-8"
       >
         <Button
-          onClick={() => navigate('/mental-health/crisis-support')}
+          onClick={() => setShowSupportAlert(true)}
           variant="outline"
           className="w-full border-red-200 hover:bg-red-50 text-red-600 hover:text-red-700 p-4 rounded-lg flex items-center justify-center gap-3"
         >
           <AlertCircle className="w-5 h-5" />
           <span className="font-medium">Need Immediate Support?</span>
         </Button>
+        {showSupportAlert && (
+          <div className="mt-4 w-full bg-red-100 border border-red-300 text-red-800 rounded-lg px-4 py-3 flex items-center justify-between shadow animate-fade-in-down">
+            <span className="font-semibold">Try to remain calm, we have shared your location with the nearest medical facility.</span>
+            <button
+              onClick={() => setShowSupportAlert(false)}
+              className="ml-4 text-red-500 hover:text-red-700 focus:outline-none"
+              aria-label="Close alert"
+            >
+              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        )}
       </motion.div>
 
       {/* Feature Grid */}

@@ -8,6 +8,7 @@ import { useRef, useState, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import AuthenticatedLanding from './AuthenticatedLanding';
+import Footer from '../components/Footer';
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -287,6 +288,7 @@ function UnauthenticatedLanding() {
           </motion.div>
         </motion.div>
       </section>
+      <Footer />
     </div>
   );
 }
