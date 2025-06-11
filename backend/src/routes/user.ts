@@ -4,8 +4,10 @@ import { withAccelerate } from "@prisma/extension-accelerate";
 import { sign, verify, decode } from "hono/jwt";
 import axios from "axios";
 import OpenAI from "openai";
+import twilio from "twilio";
 import { appointmentSchema, chatSupportSchema, formatDate, predictionSchema, signInSchema, signUpSchema, specializationSchema, updateSchema } from "../utils/userType";
 import { getFoodInfo, calculateHealthScore, checkDietaryCompatibility } from "../utils/api";
+import { callMemoryStore } from "../utils/CallType";
 
 export const userRouter = new Hono<{
     Bindings: {
@@ -15,6 +17,9 @@ export const userRouter = new Hono<{
         OPENROUTER_API_KEY: string
         OPENROUTER_BASE_URL: string
         SENDGRID_API_KEY: string
+        TWILIO_ACCOUNT_SID: string
+        TWILIO_AUTH_TOKEN: string
+        TWILIO_PHONE_NUMBER: string
     }, Variables:{
         userId: string
         role: string
@@ -806,6 +811,383 @@ userRouter.get("/info/:id", async (c) => {
     }
     c.status(404);
     return c.json({ message: "User or doctor not found" });
+});
+
+// Phone-based appointment booking routes
+userRouter.post("/initiate-phone-booking", async (c) => {
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env.DATABASE_URL,
+    }).$extends(withAccelerate());
+
+    const userId = c.get("userId");
+    const { phoneNumber } = await c.req.json();
+    console.log("[initiate-phone-booking] userId:", userId, "phoneNumber:", phoneNumber);
+
+    if (!phoneNumber) {
+        c.status(400);
+        return c.json({ message: "Phone number is required" });
+    }
+
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+        console.log("[initiate-phone-booking] user:", user);
+
+        if (!user) {
+            c.status(404);
+            return c.json({ message: "User not found" });
+        }
+
+        // Initialize Twilio client
+        const twilioClient = twilio(c.env.TWILIO_ACCOUNT_SID, c.env.TWILIO_AUTH_TOKEN);
+
+        // Create a call with TwiML for interactive voice response
+        const call = await twilioClient.calls.create({
+            to: phoneNumber,
+            from: c.env.TWILIO_PHONE_NUMBER,
+            twiml: `
+                <Response>
+                    <Gather numDigits="1" action="/user/handle-specialization-choice" method="POST">
+                        <Say>Welcome to EquiHealth appointment booking system. Please select a specialization by pressing the corresponding number.</Say>
+                        <Say>Press 1 for General Medicine</Say>
+                        <Say>Press 2 for Cardiology</Say>
+                        <Say>Press 3 for Neurology</Say>
+                        <Say>Press 4 for Orthopedics</Say>
+                        <Say>Press 5 for Pediatrics</Say>
+                    </Gather>
+                </Response>
+            `
+        });
+        console.log("[initiate-phone-booking] Twilio call initiated:", call.sid);
+        c.status(200);
+        callMemoryStore[call.sid] = { userId }
+        return c.json({
+            message: "Call initiated successfully",
+            callSid: call.sid
+        });
+    } catch (error: any) {
+        console.error("Error initiating call:", error);
+        c.status(500);
+        return c.json({
+            message: "Error initiating call",
+            error: error.message
+        });
+    }
+});
+
+userRouter.post("/handle-specialization-choice", async (c) => {
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env.DATABASE_URL,
+    }).$extends(withAccelerate());
+
+    const formData1 = await c.req.parseBody() as Record<string, string | File>;
+    const Digits = typeof formData1["Digits"] === "string" ? formData1["Digits"] : "";
+    const CallSid = typeof formData1["CallSid"] === "string" ? formData1["CallSid"] : "";
+    console.log("[handle-specialization-choice] CallSid:", CallSid, "Digits:", Digits);
+    const specializationMap: { [key: string]: string } = {
+        "1": "General Medicine",
+        "2": "Cardiology",
+        "3": "Neurology",
+        "4": "Orthopedics",
+        "5": "Pediatrics"
+    };
+
+    const specialization = specializationMap[Digits];
+    console.log("[handle-specialization-choice] specialization:", specialization);
+    if (!specialization) {
+        return c.text(`
+            <Response>
+                <Say>Invalid selection. Please try again.</Say>
+                <Redirect method="POST">/user/initiate-phone-booking</Redirect>
+            </Response>
+        `);
+    }
+    callMemoryStore[CallSid].specialization = specialization;
+    try {
+        // Get available doctors for the selected specialization
+        const doctors = await prisma.doctor.findMany({
+            where: { specialization },
+            select: { id: true, name: true }
+        });
+        console.log("[handle-specialization-choice] doctors:", doctors);
+
+        if (doctors.length === 0) {
+            return c.text(`
+                <Response>
+                    <Say>No doctors available for ${specialization}. Please try another specialization.</Say>
+                    <Redirect method="POST">/user/initiate-phone-booking</Redirect>
+                </Response>
+            `);
+        }
+
+        // Create TwiML for doctor selection
+        let doctorOptions = doctors.map((doctor, index) => 
+            `<Say>Press ${index + 1} for Doctor ${doctor.name}</Say>`
+        ).join('');
+
+        return c.text(`
+            <Response>
+                <Gather numDigits="1" action="/user/handle-doctor-choice" method="POST">
+                    <Say>Please select a doctor by pressing the corresponding number.</Say>
+                    ${doctorOptions}
+                </Gather>
+            </Response>
+        `);
+    } catch (error: any) {
+        console.error("Error handling specialization choice:", error);
+        return c.text(`
+            <Response>
+                <Say>An error occurred. Please try again later.</Say>
+                <Hangup/>
+            </Response>
+        `);
+    }
+});
+
+userRouter.post("/handle-doctor-choice", async (c) => {
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env.DATABASE_URL,
+    }).$extends(withAccelerate());
+
+    const formData2 = await c.req.parseBody() as Record<string, string | File>;
+    const Digits = typeof formData2["Digits"] === "string" ? formData2["Digits"] : "";
+    const CallSid = typeof formData2["CallSid"] === "string" ? formData2["CallSid"] : "";
+    console.log("[handle-doctor-choice] CallSid:", CallSid, "Digits:", Digits);
+
+    // Get doctor list from memory (set in previous step)
+    const specialization = callMemoryStore[CallSid]?.specialization;
+    console.log("[handle-doctor-choice] specialization from memory:", specialization);
+    if (!specialization) {
+        return c.text(`
+            <Response>
+                <Say>Session expired or invalid. Please start again.</Say>
+                <Hangup/>
+            </Response>
+        `);
+    }
+    // Fetch doctors for the specialization
+    const doctors = await prisma.doctor.findMany({
+        where: { specialization },
+        select: { id: true, name: true }
+    });
+    console.log("[handle-doctor-choice] doctors:", doctors);
+    const doctorIndex = parseInt(Digits) - 1;
+    if (doctorIndex < 0 || doctorIndex >= doctors.length) {
+        return c.text(`
+            <Response>
+                <Say>Invalid doctor selection. Please try again.</Say>
+                <Redirect method="POST">/user/handle-specialization-choice</Redirect>
+            </Response>
+        `);
+    }
+    const selectedDoctor = doctors[doctorIndex];
+    callMemoryStore[CallSid].doctorId = selectedDoctor.id;
+    console.log("[handle-doctor-choice] selectedDoctor:", selectedDoctor);
+
+    // Fetch available dates for this doctor (dates with available slots)
+    const today = new Date();
+    const availabilities = await prisma.doctorAvailability.findMany({
+        where: { doctorId: selectedDoctor.id, date: { gte: today } },
+        select: { date: true, slots: true },
+        orderBy: { date: 'asc' }
+    });
+    console.log("[handle-doctor-choice] availabilities:", availabilities);
+    if (!availabilities.length) {
+        return c.text(`
+            <Response>
+                <Say>No available dates for this doctor. Please try another doctor.</Say>
+                <Redirect method="POST">/user/handle-specialization-choice</Redirect>
+            </Response>
+        `);
+    }
+    // Only show up to 7 dates
+    const availableDates = availabilities.slice(0, 7).map(a => a.date);
+    let dateOptions = availableDates.map((date, index) =>
+        `<Say>Press ${index + 1} for ${new Date(date).toLocaleDateString()}</Say>`
+    ).join('');
+    // Store availableDates in memory for next step
+    callMemoryStore[CallSid].availableDates = availableDates.map(d => d.toISOString());
+    console.log("[handle-doctor-choice] availableDates:", availableDates);
+    return c.text(`
+        <Response>
+            <Gather numDigits="1" action="/user/handle-date-choice" method="POST">
+                <Say>Please select a date by pressing the corresponding number.</Say>
+                ${dateOptions}
+            </Gather>
+        </Response>
+    `);
+});
+
+userRouter.post("/handle-date-choice", async (c) => {
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env.DATABASE_URL,
+    }).$extends(withAccelerate());
+
+    const formData3 = await c.req.parseBody() as Record<string, string | File>;
+    const Digits = typeof formData3["Digits"] === "string" ? formData3["Digits"] : "";
+    const CallSid = typeof formData3["CallSid"] === "string" ? formData3["CallSid"] : "";
+    console.log("[handle-date-choice] CallSid:", CallSid, "Digits:", Digits);
+
+    const doctorId = callMemoryStore[CallSid]?.doctorId;
+    const availableDates = callMemoryStore[CallSid]?.availableDates;
+    console.log("[handle-date-choice] doctorId:", doctorId, "availableDates:", availableDates);
+    if (!doctorId || !availableDates) {
+        return c.text(`
+            <Response>
+                <Say>Session expired or invalid. Please start again.</Say>
+                <Hangup/>
+            </Response>
+        `);
+    }
+    const dateIndex = parseInt(Digits) - 1;
+    if (dateIndex < 0 || dateIndex >= availableDates.length) {
+        return c.text(`
+            <Response>
+                <Say>Invalid date selection. Please try again.</Say>
+                <Redirect method="POST">/user/handle-doctor-choice</Redirect>
+            </Response>
+        `);
+    }
+    const selectedDate = availableDates[dateIndex];
+    callMemoryStore[CallSid].date = selectedDate;
+    console.log("[handle-date-choice] selectedDate:", selectedDate);
+
+    // Fetch available slots for this doctor and date
+    const doctorAvailability = await prisma.doctorAvailability.findFirst({
+        where: { doctorId, date: new Date(selectedDate) }
+    });
+    console.log("[handle-date-choice] doctorAvailability:", doctorAvailability);
+    if (!doctorAvailability || !Array.isArray(doctorAvailability.slots) || doctorAvailability.slots.length === 0) {
+        return c.text(`
+            <Response>
+                <Say>No available slots for this date. Please try another date.</Say>
+                <Redirect method="POST">/user/handle-doctor-choice</Redirect>
+            </Response>
+        `);
+    }
+    // Only show up to 7 slots
+    const slots = doctorAvailability.slots.slice(0, 7);
+    let slotOptions = slots
+        .filter((slot): slot is string | { start: string } => slot !== null && slot !== undefined)
+        .map((slot, index) =>
+            `<Say>Press ${index + 1} for ${typeof slot === 'string' ? slot : (typeof slot === 'object' && 'start' in slot ? slot.start : '')}</Say>`
+        ).join('');
+    // Store slots in memory for next step
+    callMemoryStore[CallSid].slots = slots;
+    console.log("[handle-date-choice] slots:", slots);
+    return c.text(`
+        <Response>
+            <Gather numDigits="1" action="/user/handle-slot-choice" method="POST">
+                <Say>Please select a time slot by pressing the corresponding number.</Say>
+                ${slotOptions}
+            </Gather>
+        </Response>
+    `);
+});
+
+userRouter.post("/handle-slot-choice", async (c) => {
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env.DATABASE_URL,
+    }).$extends(withAccelerate());
+
+    const formData4 = await c.req.parseBody() as Record<string, string | File>;
+    const Digits = typeof formData4["Digits"] === "string" ? formData4["Digits"] : "";
+    const CallSid = typeof formData4["CallSid"] === "string" ? formData4["CallSid"] : "";
+    console.log("[handle-slot-choice] CallSid:", CallSid, "Digits:", Digits);
+
+    const slots = callMemoryStore[CallSid]?.slots;
+    console.log("[handle-slot-choice] slots from memory:", slots);
+    if (!slots) {
+        return c.text(`
+            <Response>
+                <Say>Session expired or invalid. Please start again.</Say>
+                <Hangup/>
+            </Response>
+        `);
+    }
+    const slotIndex = parseInt(Digits) - 1;
+    if (slotIndex < 0 || slotIndex >= slots.length) {
+        return c.text(`
+            <Response>
+                <Say>Invalid slot selection. Please try again.</Say>
+                <Redirect method="POST">/user/handle-date-choice</Redirect>
+            </Response>
+        `);
+    }
+    const selectedSlot = slots[slotIndex];
+    callMemoryStore[CallSid].slot = typeof selectedSlot === 'string' ? selectedSlot : selectedSlot.start;
+    console.log("[handle-slot-choice] selectedSlot:", callMemoryStore[CallSid].slot);
+    return c.text(`
+        <Response>
+            <Gather numDigits="1" action="/user/confirm-appointment" method="POST">
+                <Say>You have selected the appointment slot at ${callMemoryStore[CallSid].slot}. Press 1 to confirm or 2 to cancel.</Say>
+            </Gather>
+        </Response>
+    `);
+});
+
+userRouter.post("/confirm-appointment", async (c) => {
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env.DATABASE_URL,
+    }).$extends(withAccelerate());
+
+    const formData5 = await c.req.parseBody() as Record<string, string | File>;
+    const Digits = typeof formData5["Digits"] === "string" ? formData5["Digits"] : "";
+    const CallSid = typeof formData5["CallSid"] === "string" ? formData5["CallSid"] : "";
+    console.log("[confirm-appointment] CallSid:", CallSid, "Digits:", Digits);
+
+    if (Digits === "1") {
+        // Confirm appointment
+        const { userId, doctorId, date, slot } = callMemoryStore[CallSid] || {};
+        console.log("[confirm-appointment] Creating appointment with:", { userId, doctorId, date, slot });
+        if (!userId || !doctorId || !date || !slot) {
+            return c.text(`
+                <Response>
+                    <Say>Session expired or invalid. Please start again.</Say>
+                    <Hangup/>
+                </Response>
+            `);
+        }
+        try {
+            const appointment = await prisma.appointment.create({
+                data: {
+                    userId,
+                    doctorId,
+                    slot,
+                    date: new Date(date),
+                    status: "PENDING"
+                }
+            });
+            // Optionally, clean up memory
+            delete callMemoryStore[CallSid];
+            console.log("[confirm-appointment] Appointment created:", appointment);
+            return c.text(`
+                <Response>
+                    <Say>Your appointment has been confirmed. You will receive a confirmation email shortly. Thank you for using EquiHealth.</Say>
+                    <Hangup/>
+                </Response>
+            `);
+        } catch (error: any) {
+            console.error("[confirm-appointment] Error confirming appointment:", error);
+            return c.text(`
+                <Response>
+                    <Say>An error occurred while confirming your appointment. Please try again later.</Say>
+                    <Hangup/>
+                </Response>
+            `);
+        }
+    } else {
+        // Cancel
+        delete callMemoryStore[CallSid];
+        console.log("[confirm-appointment] Appointment cancelled for CallSid:", CallSid);
+        return c.text(`
+            <Response>
+                <Say>Appointment booking cancelled. Thank you for using EquiHealth.</Say>
+                <Hangup/>
+            </Response>
+        `);
+    }
 });
 
   
