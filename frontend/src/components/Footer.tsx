@@ -1,10 +1,10 @@
 import { FaGithub } from 'react-icons/fa';
 
 const team = [
-  { name: 'Shozaib Khan', github: 'https://github.com/shozaibkhan' },
+  { name: 'Shozaib Khan', github: 'https://github.com/Shozaib-Khan' },
   { name: 'Soumya Banerjee', github: 'https://github.com/banerjeesoumya' },
-  { name: 'Shivangi Srivastava', github: 'https://github.com/shivangisrivastava' },
-  { name: 'Prarabdh Atrey', github: 'https://github.com/prarabdhatrey' },
+  { name: 'Shivangi Srivastava', github: 'https://github.com/shi3034' },
+  { name: 'Prarabdh Atrey', github: 'https://github.com/prarabdh14' },
 ];
 
 export default function Footer() {
