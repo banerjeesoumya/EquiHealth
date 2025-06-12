@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 import { DatePicker } from '../ui/date-picker';
-import { Clock } from 'lucide-react';
+import { Clock, Phone } from 'lucide-react';
 import { addDays } from 'date-fns';
 import { toast } from 'sonner';
-import axios from '../../lib/axios';
+import api from '../../lib/axios';
+import { useAuth } from '../../contexts/AuthContext';
+import { Input } from '../ui/input';
 
 interface Doctor {
   id: string;
@@ -29,6 +31,11 @@ export default function BookAppointment() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [slots, setSlots] = useState<(string | { start: string; end?: string })[]>([]);
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const [showPhoneInput, setShowPhoneInput] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [phoneLoading, setPhoneLoading] = useState(false);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
 
   const departments = [
     "Cardiology",
@@ -40,7 +47,7 @@ export default function BookAppointment() {
 
   const fetchDoctorsBySpecialization = async (specialization: string) => {
     try {
-      const res = await axios.post('/user/getDoctorsBySpecialization', { specialization });
+      const res = await api.post('/user/getDoctorsBySpecialization', { specialization });
       setDoctors(res.data.doctors || []);
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to fetch doctors');
@@ -50,7 +57,7 @@ export default function BookAppointment() {
 
   const fetchDoctorSlots = async (doctorId: string, date: Date) => {
     try {
-      const res = await axios.get('/user/getDoctorSlots', {
+      const res = await api.get('/user/getDoctorSlots', {
         params: { doctorId, date: date.toISOString().split('T')[0] }
       });
       setSlots(res.data.slots || []);
@@ -97,7 +104,7 @@ export default function BookAppointment() {
       if (!doctorObj) throw new Error('Doctor not found');
 
       const formattedDate = selectedDate.toISOString().split('T')[0];
-      await axios.post('/user/bookAppointment', {
+      await api.post('/user/bookAppointment', {
         doctorId: doctorObj.id,
         date: formattedDate,
         slot: getSlotStart(selectedSlot),
@@ -115,11 +122,91 @@ export default function BookAppointment() {
     }
   };
 
+  // Popover close on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (showPhoneInput && phoneInputRef.current && !phoneInputRef.current.contains(event.target as Node)) {
+        setShowPhoneInput(false);
+      }
+    }
+    if (showPhoneInput) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showPhoneInput]);
+
+  const handleBookViaCall = async () => {
+    if (!/^[0-9]{10}$/.test(phone)) {
+      toast.error('Please enter a valid 10-digit phone number');
+      return;
+    }
+    if (!user || !user.id) {
+      //toast.error('User not found');
+      return;
+    }
+    setPhoneLoading(true);
+    try {
+      await api.post('/user/initiate-phone-booking', {
+        phoneNumber: `+91${phone}`,
+        userId: user.id,
+      });
+      toast.success('You should be receiving a call shortly to book your appointment.');
+      setShowPhoneInput(false);
+      setPhone('');
+    } catch (err: any) {
+      //toast.error(err.response?.data?.message || 'Failed to initiate phone booking');
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Book Appointment</CardTitle>
-        <CardDescription>Schedule a consultation with our specialists</CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between">
+        <div>
+          <CardTitle>Book Appointment</CardTitle>
+          <CardDescription>Schedule a consultation with our specialists</CardDescription>
+        </div>
+        <div className="relative">
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full p-2 flex items-center gap-2"
+            onClick={() => setShowPhoneInput(v => !v)}
+            aria-label="Book via Call"
+          >
+            <Phone className="w-5 h-5" />
+            <span className="font-medium">Book via Call</span>
+          </Button>
+          {showPhoneInput && (
+            <div ref={phoneInputRef} className="absolute right-0 mt-2 z-50 bg-background border border-muted rounded-lg shadow-lg p-3 flex flex-col gap-2 min-w-[220px]" style={{ minWidth: 220 }}>
+              <Label htmlFor="phone">Phone (10 digits)</Label>
+              <div className="flex items-center gap-1">
+                <span className="text-muted-foreground">+91</span>
+                <Input
+                  id="phone"
+                  type="tel"
+                  maxLength={10}
+                  minLength={10}
+                  pattern="[0-9]{10}"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder="Enter number"
+                  className="flex-1"
+                  autoFocus
+                />
+              </div>
+              <Button onClick={async () => {
+                toast.success('You should be receiving a call shortly to book your appointment.');
+                await handleBookViaCall();
+              }} disabled={phoneLoading} size="sm">
+                {phoneLoading ? 'Initiating...' : 'Book Call'}
+              </Button>
+            </div>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
