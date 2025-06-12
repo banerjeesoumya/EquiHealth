@@ -1,11 +1,9 @@
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Activity, Heart, Users, Calendar, Shield, Stethoscope, Star, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Activity, Heart, Users, Calendar, Shield, Stethoscope, Star, ArrowRight, Flame } from 'lucide-react';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { heroImage, doctorImage, mobileAppImage, avatars } from '../assets/images';
+import { heroImage, doctorImage } from '../assets/images';
 import { useRef, useState, useEffect } from 'react';
-import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import AuthenticatedLanding from './AuthenticatedLanding';
 import Footer from '../components/Footer';
@@ -23,11 +21,6 @@ const staggerContainer = {
       staggerChildren: 0.2
     }
   }
-};
-
-const scaleIn = {
-  hidden: { scale: 0.8, opacity: 0 },
-  visible: { scale: 1, opacity: 1, transition: { duration: 0.5 } }
 };
 
 function UnauthenticatedLanding() {
@@ -145,76 +138,88 @@ function UnauthenticatedLanding() {
         </motion.div>
       </section>
 
-      <section className="py-20 px-4 bg-muted/30">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={staggerContainer}
-          className="container mx-auto max-w-6xl"
-        >
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <motion.div variants={fadeIn} className="space-y-6">
-              <h2 className="text-3xl md:text-4xl font-bold">
-                Take Control of Your Health
-              </h2>
-              <p className="text-xl text-muted-foreground">
-                Access your health records, schedule appointments, and track your progress anywhere, anytime with our mobile app.
-              </p>
-              <motion.ul className="space-y-4">
-                {[
-                  "Real-time health monitoring",
-                  "Instant doctor consultations",
-                  "Medication reminders",
-                  "Progress tracking"
-                ].map((feature, index) => (
-                  <motion.li
-                    key={index}
-                    variants={scaleIn}
-                    className="flex items-center gap-2"
-                    whileHover={{ x: 10 }}
-                  >
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
-                    <span>{feature}</span>
-                  </motion.li>
-                ))}
-              </motion.ul>
-            </motion.div>
-            <motion.div
-              variants={fadeIn}
-              className="relative"
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <img
-                src={mobileAppImage}
-                alt="Mobile app interface"
-                className="rounded-xl shadow-2xl"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent rounded-xl" />
-            </motion.div>
-          </div>
-        </motion.div>
-      </section>
-
       <section className="py-20 px-4 bg-background">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={staggerContainer}
-          className="container mx-auto max-w-6xl"
-        >
-          <motion.div variants={fadeIn} className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              What Our Users Say
-            </h2>
-            <p className="text-xl text-muted-foreground">
-              Join thousands of satisfied users who have transformed their healthcare journey
-            </p>
-          </motion.div>
-          <TestimonialCarousel testimonials={testimonials} />
-        </motion.div>
+        <div className="container mx-auto max-w-6xl">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-8">EquiHealth Features</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Core Healthcare */}
+            <div className="bg-muted/40 rounded-xl p-6 shadow flex flex-col gap-3">
+              <div className="flex items-center gap-3 mb-2">
+                <Shield className="w-7 h-7 text-primary" />
+                <span className="font-semibold text-lg">Secure Digital Health</span>
+              </div>
+              <ul className="text-muted-foreground text-sm space-y-1">
+                <li>ABHA integration for digital records</li>
+                <li>Real-time health monitoring (Google Fit)</li>
+                <li>AI-powered disease prediction</li>
+                <li>Smart appointment scheduling (web & phone)</li>
+                <li>Telemedicine consultations</li>
+              </ul>
+            </div>
+            {/* Mental Health & Wellness */}
+            <div className="bg-muted/40 rounded-xl p-6 shadow flex flex-col gap-3">
+              <div className="flex items-center gap-3 mb-2">
+                <Heart className="w-7 h-7 text-primary" />
+                <span className="font-semibold text-lg">Mental Wellness</span>
+              </div>
+              <ul className="text-muted-foreground text-sm space-y-1">
+                <li>Mood tracker & analytics</li>
+                <li>Guided mindfulness & meditation</li>
+                <li>Wellness challenges & smart journal</li>
+                <li>Self-assessment tools</li>
+                <li>AI mental health chatbot</li>
+              </ul>
+            </div>
+            {/* Nutrition & Lifestyle */}
+            <div className="bg-muted/40 rounded-xl p-6 shadow flex flex-col gap-3">
+              <div className="flex items-center gap-3 mb-2">
+                <Flame className="w-7 h-7 text-primary" />
+                <span className="font-semibold text-lg">Nutrition & Lifestyle</span>
+              </div>
+              <ul className="text-muted-foreground text-sm space-y-1">
+                <li>Food info & nutrition tracking</li>
+                <li>Personalized dietary advice</li>
+                <li>Activity & habit tracking</li>
+              </ul>
+            </div>
+            {/* Community & Engagement */}
+            <div className="bg-muted/40 rounded-xl p-6 shadow flex flex-col gap-3">
+              <div className="flex items-center gap-3 mb-2">
+                <Users className="w-7 h-7 text-primary" />
+                <span className="font-semibold text-lg">Community Support</span>
+              </div>
+              <ul className="text-muted-foreground text-sm space-y-1">
+                <li>Forums for patients, doctors, admins</li>
+                <li>Peer support & knowledge sharing</li>
+                <li>Doctor/admin engagement</li>
+              </ul>
+            </div>
+            {/* Security & Privacy */}
+            <div className="bg-muted/40 rounded-xl p-6 shadow flex flex-col gap-3">
+              <div className="flex items-center gap-3 mb-2">
+                <Shield className="w-7 h-7 text-primary" />
+                <span className="font-semibold text-lg">Security & Privacy</span>
+              </div>
+              <ul className="text-muted-foreground text-sm space-y-1">
+                <li>Role-based access control</li>
+                <li>HIPAA-compliant, privacy-focused</li>
+                <li>Cloud-based, scalable infrastructure</li>
+              </ul>
+            </div>
+            {/* Accessibility */}
+            <div className="bg-muted/40 rounded-xl p-6 shadow flex flex-col gap-3">
+              <div className="flex items-center gap-3 mb-2">
+                <Activity className="w-7 h-7 text-primary" />
+                <span className="font-semibold text-lg">Accessibility</span>
+              </div>
+              <ul className="text-muted-foreground text-sm space-y-1">
+                <li>Mobile-first, intuitive UI</li>
+                <li>Screen reader & keyboard support</li>
+                <li>High contrast & semantic HTML</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="py-20 px-4 bg-muted relative overflow-hidden">
@@ -360,97 +365,6 @@ function CounterCard({ number, label, prefix = "", suffix = "" }: CounterCardPro
   );
 }
 
-interface Testimonial {
-  name: string;
-  role: string;
-  avatar: string;
-  quote: string;
-}
-
-interface TestimonialCarouselProps {
-  testimonials: Testimonial[];
-}
-
-function TestimonialCarousel({ testimonials }: TestimonialCarouselProps) {
-  const [current, setCurrent] = useState(0);
-  const [direction, setDirection] = useState(0);
-
-  const slideVariants = {
-    enter: (direction: number) => ({
-      x: direction > 0 ? 1000 : -1000,
-      opacity: 0
-    }),
-    center: {
-      zIndex: 1,
-      x: 0,
-      opacity: 1
-    },
-    exit: (direction: number) => ({
-      zIndex: 0,
-      x: direction < 0 ? 1000 : -1000,
-      opacity: 0
-    })
-  };
-
-  const swipeConfidenceThreshold = 10000;
-  const swipePower = (offset: number, velocity: number) => {
-    return Math.abs(offset) * velocity;
-  };
-
-  const paginate = (newDirection: number) => {
-    setDirection(newDirection);
-    setCurrent((current + newDirection + testimonials.length) % testimonials.length);
-  };
-
-  return (
-    <div className="relative h-[400px] w-full">
-      <AnimatePresence initial={false} custom={direction}>
-        <motion.div
-          key={current}
-          custom={direction}
-          variants={slideVariants}
-          initial="enter"
-          animate="center"
-          exit="exit"
-          transition={{
-            x: { type: "spring", stiffness: 300, damping: 30 },
-            opacity: { duration: 0.2 }
-          }}
-          drag="x"
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={1}
-          onDragEnd={(_e, { offset, velocity }) => {
-            const swipe = swipePower(offset.x, velocity.x);
-
-            if (swipe < -swipeConfidenceThreshold) {
-              paginate(1);
-            } else if (swipe > swipeConfidenceThreshold) {
-              paginate(-1);
-            }
-          }}
-          className="absolute w-full"
-        >
-          <TestimonialCard testimonial={testimonials[current]} />
-        </motion.div>
-      </AnimatePresence>
-      <div className="absolute bottom-0 left-0 right-0 flex justify-center gap-2 pb-4">
-        {testimonials.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => {
-              setDirection(index > current ? 1 : -1);
-              setCurrent(index);
-            }}
-            className={`w-2 h-2 rounded-full transition-colors ${
-              index === current ? "bg-primary" : "bg-primary/20"
-            }`}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function FloatingElements() {
   return (
     <div className="absolute inset-0 overflow-hidden">
@@ -511,27 +425,6 @@ const features = [
   }
 ];
 
-const testimonials = [
-  {
-    name: "Sarah Johnson",
-    role: "Patient",
-    avatar: avatars[0],
-    quote: "EquiHealth has revolutionized how I manage my health. The ability to track my progress and connect with doctors instantly is incredible."
-  },
-  {
-    name: "Dr. Michael Chen",
-    role: "Cardiologist",
-    avatar: avatars[1],
-    quote: "As a healthcare provider, EquiHealth helps me deliver better care to my patients with its comprehensive health tracking features."
-  },
-  {
-    name: "Emma Davis",
-    role: "Fitness Trainer",
-    avatar: avatars[2],
-    quote: "I recommend EquiHealth to all my clients. It's the perfect platform for monitoring health metrics and staying connected with healthcare providers."
-  }
-];
-
 function FeatureCard({ icon, title, description, isHovered, onHover, onLeave }: { icon: React.ReactNode; title: string; description: string; isHovered: boolean; onHover: () => void; onLeave: () => void }) {
   return (
     <motion.div
@@ -557,32 +450,5 @@ function FeatureCard({ icon, title, description, isHovered, onHover, onLeave }: 
         ))}
       </div>
     </motion.div>
-  );
-}
-
-interface TestimonialCardProps {
-  testimonial: Testimonial;
-}
-
-function TestimonialCard({ testimonial }: TestimonialCardProps) {
-  return (
-    <Card className="h-full flex flex-col bg-card/50 backdrop-blur-sm">
-      <CardHeader className="flex flex-row items-center gap-4">
-        <img 
-          src={testimonial.avatar} 
-          alt={testimonial.name} 
-          className="w-14 h-14 rounded-full object-cover ring-2 ring-primary/50" 
-        />
-        <div>
-          <CardTitle className="text-lg">{testimonial.name}</CardTitle>
-          <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-        </div>
-      </CardHeader>
-      <CardContent className="flex-1">
-        <p className="text-muted-foreground italic">
-          &ldquo;{testimonial.quote}&rdquo;
-        </p>
-      </CardContent>
-    </Card>
   );
 } 
