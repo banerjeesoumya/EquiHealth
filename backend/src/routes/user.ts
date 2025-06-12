@@ -20,6 +20,7 @@ export const userRouter = new Hono<{
         TWILIO_ACCOUNT_SID: string
         TWILIO_AUTH_TOKEN: string
         TWILIO_PHONE_NUMBER: string
+        BASE_URL: string
     }, Variables:{
         userId: string
         role: string
@@ -151,17 +152,12 @@ userRouter.post("/initiate-phone-booking", async (c) => {
         datasourceUrl: c.env.DATABASE_URL,
     }).$extends(withAccelerate());
 
-    // Accept userId in the request body
     const { phoneNumber, userId } = await c.req.json();
     console.log("[initiate-phone-booking] userId:", userId, "phoneNumber:", phoneNumber);
 
-    if (!phoneNumber) {
+    if (!phoneNumber || !userId) {
         c.status(400);
-        return c.json({ message: "Phone number is required" });
-    }
-    if (!userId) {
-        c.status(400);
-        return c.json({ message: "User ID is required" });
+        return c.json({ message: "Phone number and userId are required" });
     }
 
     try {
@@ -184,20 +180,21 @@ userRouter.post("/initiate-phone-booking", async (c) => {
             from: c.env.TWILIO_PHONE_NUMBER,
             twiml: `
                 <Response>
-                    <Gather numDigits="1" action="https://4242-110-235-233-173.ngrok-free.app/api/v1/user/handle-specialization-choice" method="POST">
+                    <Gather numDigits="1" action="${c.env.BASE_URL}/api/v1/user/handle-specialization-choice" method="POST">
                         <Say>Welcome to EquiHealth appointment booking system. Please select a specialization by pressing the corresponding number.</Say>
                         <Say>Press 1 for General Medicine</Say>
                         <Say>Press 2 for Cardiology</Say>
                         <Say>Press 3 for Neurology</Say>
                         <Say>Press 4 for Orthopedics</Say>
                         <Say>Press 5 for Pediatrics</Say>
+                        <Say>Press 6 for Dermatology</Say>
                     </Gather>
                 </Response>
             `
         });
         console.log("[initiate-phone-booking] Twilio call initiated:", call.sid);
-        callMemoryStore[call.sid] = { userId };
         c.status(200);
+        callMemoryStore[call.sid] = { userId }
         return c.json({
             message: "Call initiated successfully",
             callSid: call.sid
@@ -226,7 +223,8 @@ userRouter.post("/handle-specialization-choice", async (c) => {
         "2": "Cardiology",
         "3": "Neurology",
         "4": "Orthopedics",
-        "5": "Pediatrics"
+        "5": "Pediatrics",
+        "6": "Dermatology"
     };
 
     const specialization = specializationMap[Digits];
@@ -235,7 +233,7 @@ userRouter.post("/handle-specialization-choice", async (c) => {
         return c.text(`
             <Response>
                 <Say>Invalid selection. Please try again.</Say>
-                <Redirect method="POST">https://4242-110-235-233-173.ngrok-free.app/api/v1/user/initiate-phone-booking</Redirect>
+                <Redirect method="POST">${c.env.BASE_URL}/api/v1/user/initiate-phone-booking</Redirect>
             </Response>
         `);
     }
@@ -248,28 +246,29 @@ userRouter.post("/handle-specialization-choice", async (c) => {
         });
         console.log("[handle-specialization-choice] doctors:", doctors);
 
-        if (doctors.length === 0) {
+        // Defensive: filter out doctors with empty names
+        const filteredDoctors = doctors.filter(doctor => doctor.name && doctor.name.trim() !== "");
+        if (!filteredDoctors.length) {
             return c.text(`
                 <Response>
                     <Say>No doctors available for ${specialization}. Please try another specialization.</Say>
-                    <Redirect method="POST">https://4242-110-235-233-173.ngrok-free.app/api/v1/user/initiate-phone-booking</Redirect>
+                    <Redirect method="POST">${c.env.BASE_URL}/api/v1/user/initiate-phone-booking</Redirect>
                 </Response>
             `);
         }
-
-        // Create TwiML for doctor selection
-        let doctorOptions = doctors.map((doctor, index) => 
-            `<Say>Press ${index + 1} for Doctor ${doctor.name}</Say>`
-        ).join('');
-
-        return c.text(`
-            <Response>
-                <Gather numDigits="1" action="https://4242-110-235-233-173.ngrok-free.app/api/v1/user/handle-doctor-choice" method="POST">
-                    <Say>Please select a doctor by pressing the corresponding number.</Say>
-                    ${doctorOptions}
-                </Gather>
-            </Response>
-        `);
+        let doctorOptions = filteredDoctors
+            .map((doctor, index) => `<Say>Press ${index + 1} for Doctor ${doctor.name}</Say>`)
+            .join('');
+        const twiml = [
+            '<Response>',
+            `<Gather numDigits="1" action="${c.env.BASE_URL}/api/v1/user/handle-doctor-choice" method="POST">`,
+            '<Say>Please select a doctor by pressing the corresponding number.</Say>',
+            doctorOptions,
+            '</Gather>',
+            '</Response>'
+        ].join('');
+        console.log("[handle-specialization-choice] TwiML sent:\n", twiml);
+        return c.text(twiml);
     } catch (error: any) {
         console.error("Error handling specialization choice:", error);
         return c.text(`
@@ -295,12 +294,7 @@ userRouter.post("/handle-doctor-choice", async (c) => {
     const specialization = callMemoryStore[CallSid]?.specialization;
     console.log("[handle-doctor-choice] specialization from memory:", specialization);
     if (!specialization) {
-        return c.text(`
-            <Response>
-                <Say>Session expired or invalid. Please start again.</Say>
-                <Hangup/>
-            </Response>
-        `);
+        return c.text(`<Response><Say>Session expired or invalid. Please start again.</Say><Hangup/></Response>`);
     }
     // Fetch doctors for the specialization
     const doctors = await prisma.doctor.findMany({
@@ -310,12 +304,7 @@ userRouter.post("/handle-doctor-choice", async (c) => {
     console.log("[handle-doctor-choice] doctors:", doctors);
     const doctorIndex = parseInt(Digits) - 1;
     if (doctorIndex < 0 || doctorIndex >= doctors.length) {
-        return c.text(`
-            <Response>
-                <Say>Invalid doctor selection. Please try again.</Say>
-                <Redirect method="POST">https://4242-110-235-233-173.ngrok-free.app/api/v1/user/handle-specialization-choice</Redirect>
-            </Response>
-        `);
+        return c.text(`<Response><Say>Invalid doctor selection. Please try again.</Say><Redirect method="POST">${c.env.BASE_URL}/api/v1/user/handle-specialization-choice</Redirect></Response>`);
     }
     const selectedDoctor = doctors[doctorIndex];
     callMemoryStore[CallSid].doctorId = selectedDoctor.id;
@@ -330,12 +319,7 @@ userRouter.post("/handle-doctor-choice", async (c) => {
     });
     console.log("[handle-doctor-choice] availabilities:", availabilities);
     if (!availabilities.length) {
-        return c.text(`
-            <Response>
-                <Say>No available dates for this doctor. Please try another doctor.</Say>
-                <Redirect method="POST">https://4242-110-235-233-173.ngrok-free.app/api/v1/user/handle-specialization-choice</Redirect>
-            </Response>
-        `);
+        return c.text(`<Response><Say>No available dates for this doctor. Please try another doctor.</Say><Redirect method="POST">${c.env.BASE_URL}/api/v1/user/handle-specialization-choice</Redirect></Response>`);
     }
     // Only show up to 7 dates
     const availableDates = availabilities.slice(0, 7).map(a => a.date);
@@ -345,14 +329,7 @@ userRouter.post("/handle-doctor-choice", async (c) => {
     // Store availableDates in memory for next step
     callMemoryStore[CallSid].availableDates = availableDates.map(d => d.toISOString());
     console.log("[handle-doctor-choice] availableDates:", availableDates);
-    return c.text(`
-        <Response>
-            <Gather numDigits="1" action="https://4242-110-235-233-173.ngrok-free.app/api/v1/user/handle-date-choice" method="POST">
-                <Say>Please select a date by pressing the corresponding number.</Say>
-                ${dateOptions}
-            </Gather>
-        </Response>
-    `);
+    return c.text(`<Response><Gather numDigits="1" action="${c.env.BASE_URL}/api/v1/user/handle-date-choice" method="POST"><Say>Please select a date by pressing the corresponding number.</Say>${dateOptions}</Gather></Response>`);
 });
 
 userRouter.post("/handle-date-choice", async (c) => {
@@ -369,21 +346,11 @@ userRouter.post("/handle-date-choice", async (c) => {
     const availableDates = callMemoryStore[CallSid]?.availableDates;
     console.log("[handle-date-choice] doctorId:", doctorId, "availableDates:", availableDates);
     if (!doctorId || !availableDates) {
-        return c.text(`
-            <Response>
-                <Say>Session expired or invalid. Please start again.</Say>
-                <Hangup/>
-            </Response>
-        `);
+        return c.text(`<Response><Say>Session expired or invalid. Please start again.</Say><Hangup/></Response>`);
     }
     const dateIndex = parseInt(Digits) - 1;
     if (dateIndex < 0 || dateIndex >= availableDates.length) {
-        return c.text(`
-            <Response>
-                <Say>Invalid date selection. Please try again.</Say>
-                <Redirect method="POST">https://4242-110-235-233-173.ngrok-free.app/api/v1/user/handle-doctor-choice</Redirect>
-            </Response>
-        `);
+        return c.text(`<Response><Say>Invalid date selection. Please try again.</Say><Redirect method="POST">${c.env.BASE_URL}/api/v1/user/handle-doctor-choice</Redirect></Response>`);
     }
     const selectedDate = availableDates[dateIndex];
     callMemoryStore[CallSid].date = selectedDate;
@@ -395,31 +362,43 @@ userRouter.post("/handle-date-choice", async (c) => {
     });
     console.log("[handle-date-choice] doctorAvailability:", doctorAvailability);
     if (!doctorAvailability || !Array.isArray(doctorAvailability.slots) || doctorAvailability.slots.length === 0) {
-        return c.text(`
-            <Response>
-                <Say>No available slots for this date. Please try another date.</Say>
-                <Redirect method="POST">https://4242-110-235-233-173.ngrok-free.app/api/v1/user/handle-doctor-choice</Redirect>
-            </Response>
-        `);
+        return c.text(`<Response><Say>No available slots for this date. Please try another date.</Say><Redirect method="POST">${c.env.BASE_URL}/api/v1/user/handle-doctor-choice</Redirect></Response>`);
     }
-    // Only show up to 7 slots
-    const slots = doctorAvailability.slots.slice(0, 7);
+
+    // Fetch all appointments for this doctor and date (not cancelled)
+    const bookedAppointments = await prisma.appointment.findMany({
+        where: {
+            doctorId,
+            date: new Date(selectedDate),
+            status: { not: "CANCELLED" }
+        },
+        select: { slot: true }
+    });
+    const bookedSlots = bookedAppointments.map(a => a.slot);
+
+    // Only show up to 7 slots, filter out already booked slots
+    const slots = doctorAvailability.slots
+        .filter((slot: any) => {
+            if (slot && typeof slot === 'object' && 'start' in slot) {
+                return !bookedSlots.includes(slot.start);
+            }
+            return false;
+        })
+        .slice(0, 7);
+
     let slotOptions = slots
-        .filter((slot): slot is string | { start: string } => slot !== null && slot !== undefined)
         .map((slot, index) =>
-            `<Say>Press ${index + 1} for ${typeof slot === 'string' ? slot : (typeof slot === 'object' && 'start' in slot ? slot.start : '')}</Say>`
+            (slot && typeof slot === 'object' && 'start' in slot)
+                ? `<Say>Press ${index + 1} for ${slot.start}</Say>`
+                : ''
         ).join('');
     // Store slots in memory for next step
     callMemoryStore[CallSid].slots = slots;
     console.log("[handle-date-choice] slots:", slots);
-    return c.text(`
-        <Response>
-            <Gather numDigits="1" action="https://4242-110-235-233-173.ngrok-free.app/api/v1/user/handle-slot-choice" method="POST">
-                <Say>Please select a time slot by pressing the corresponding number.</Say>
-                ${slotOptions}
-            </Gather>
-        </Response>
-    `);
+    if (slots.length === 0) {
+        return c.text(`<Response><Say>No available slots for this date. Please try another date.</Say><Redirect method="POST">${c.env.BASE_URL}/api/v1/user/handle-doctor-choice</Redirect></Response>`);
+    }
+    return c.text(`<Response><Gather numDigits="1" action="${c.env.BASE_URL}/api/v1/user/handle-slot-choice" method="POST"><Say>Please select a time slot by pressing the corresponding number.</Say>${slotOptions}</Gather></Response>`);
 });
 
 userRouter.post("/handle-slot-choice", async (c) => {
@@ -435,35 +414,19 @@ userRouter.post("/handle-slot-choice", async (c) => {
     const slots = callMemoryStore[CallSid]?.slots;
     console.log("[handle-slot-choice] slots from memory:", slots);
     if (!slots) {
-        return c.text(`
-            <Response>
-                <Say>Session expired or invalid. Please start again.</Say>
-                <Hangup/>
-            </Response>
-        `);
+        return c.text(`<Response><Say>Session expired or invalid. Please start again.</Say><Hangup/></Response>`);
     }
     const slotIndex = parseInt(Digits) - 1;
     if (slotIndex < 0 || slotIndex >= slots.length) {
-        return c.text(`
-            <Response>
-                <Say>Invalid slot selection. Please try again.</Say>
-                <Redirect method="POST">https://4242-110-235-233-173.ngrok-free.app/api/v1/user/handle-date-choice</Redirect>
-            </Response>
-        `);
+        return c.text(`<Response><Say>Invalid slot selection. Please try again.</Say><Redirect method="POST">${c.env.BASE_URL}/api/v1/user/handle-date-choice</Redirect></Response>`);
     }
     const selectedSlot = slots[slotIndex];
-    callMemoryStore[CallSid].slot = typeof selectedSlot === 'string' ? selectedSlot : selectedSlot.start;
+    callMemoryStore[CallSid].slot = typeof selectedSlot === 'object' && selectedSlot !== null && 'start' in selectedSlot ? selectedSlot.start : '';
     console.log("[handle-slot-choice] selectedSlot:", callMemoryStore[CallSid].slot);
-    return c.text(`
-        <Response>
-            <Gather numDigits="1" action="https://4242-110-235-233-173.ngrok-free.app/api/v1/user/confirm-appointment" method="POST">
-                <Say>You have selected the appointment slot at ${callMemoryStore[CallSid].slot}. Press 1 to confirm or 2 to cancel.</Say>
-            </Gather>
-        </Response>
-    `);
+    return c.text(`<Response><Gather numDigits="1" action="${c.env.BASE_URL}/api/v1/user/confirm-appointment" method="POST"><Say>You have selected the appointment slot at ${callMemoryStore[CallSid].slot}. Press 1 to confirm or 2 to cancel.</Say></Gather></Response>`);
 });
 
-userRouter.post("/confirm-appointment", async (c) => {
+userRouter.post("/confirm-appointment", async (c) => {  
     const prisma = new PrismaClient({
         datasourceUrl: c.env.DATABASE_URL,
     }).$extends(withAccelerate());
@@ -478,14 +441,19 @@ userRouter.post("/confirm-appointment", async (c) => {
         const { userId, doctorId, date, slot } = callMemoryStore[CallSid] || {};
         console.log("[confirm-appointment] Creating appointment with:", { userId, doctorId, date, slot });
         if (!userId || !doctorId || !date || !slot) {
-            return c.text(`
-                <Response>
-                    <Say>Session expired or invalid. Please start again.</Say>
-                    <Hangup/>
-                </Response>
-            `);
+            return c.text(`<Response><Say>Session expired or invalid. Please start again.</Say><Hangup/></Response>`);
         }
         try {
+            // Get user and doctor details for email
+            const [user, doctor] = await Promise.all([
+                prisma.user.findUnique({ where: { id: userId } }),
+                prisma.doctor.findUnique({ where: { id: doctorId } })
+            ]);
+
+            if (!user || !doctor) {
+                return c.text(`<Response><Say>Error: User or doctor not found. Please try again later.</Say><Hangup/></Response>`);
+            }
+
             const appointment = await prisma.appointment.create({
                 data: {
                     userId,
@@ -495,34 +463,88 @@ userRouter.post("/confirm-appointment", async (c) => {
                     status: "PENDING"
                 }
             });
+
+            const sendEmail = async (to: string, subject: string, html: string, retries = 3) => {
+                for (let attempt = 1; attempt <= retries; attempt++) {
+                    try {
+                        const response = await axios.post('https://api.sendgrid.com/v3/mail/send', {
+                            personalizations: [{ to: [{ email: to }] }],
+                            from: { email: 'equihealthh@gmail.com', name: 'EquiHealth' },
+                            subject: subject,
+                            content: [{ type: 'text/html', value: html }]
+                        }, {
+                            headers: {
+                                'Authorization': `Bearer ${c.env.SENDGRID_API_KEY}`,
+                                'Content-Type': 'application/json',
+                            },
+                            timeout: 10000 // 10 second timeout
+                        });
+
+                        if (response.status === 202) {
+                            console.log(`Email sent successfully to ${to}`);
+                            return true;
+                        }
+                    } catch (error: any) {
+                        const errorMessage = error.response?.data?.message || error.message;
+                        console.error(`Attempt ${attempt}/${retries} failed to send email to ${to}:`, errorMessage);
+                        
+                        if (attempt === retries) {
+                            console.error(`Failed to send email after ${retries} attempts to ${to}`);
+                            return false;
+                        }
+
+                        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+                    }
+                }
+                return false;
+            };
+
+            const emailPromises = [
+                sendEmail(
+                    user.email,
+                    'Appointment Confirmed via Phone Call',
+                    `<p>Hi ${user.name},</p>
+                    <p>Your appointment with Dr. ${doctor.name} on <strong>${new Date(date).toLocaleDateString()}</strong> at <strong>${slot}</strong> has been booked successfully through our phone booking system.</p>
+                    <p>Status: <strong>PENDING</strong></p>
+                    <p>We'll notify you once the doctor updates the appointment status.</p>
+                    <p>- EquiHealth Team</p>`
+                ),
+                sendEmail(
+                    doctor.email,
+                    'New Phone Appointment Booked',
+                    `<p>Hi Dr. ${doctor.name},</p>
+                    <p>A new appointment has been booked through our phone booking system for <strong>${new Date(date).toLocaleDateString()}</strong> at <strong>${slot}</strong> by ${user.name}.</p>
+                    <p>Please visit your dashboard to update the appointment status.</p>
+                    <p>- EquiHealth System</p>`
+                )
+            ];
+
+            // Wait for all email attempts to complete
+            const emailResults = await Promise.allSettled(emailPromises);
+            
+            // Log email sending results
+            emailResults.forEach((result, index) => {
+                const recipient = index === 0 ? user.email : doctor.email;
+                if (result.status === 'fulfilled') {
+                    console.log(`Email to ${recipient} ${result.value ? 'sent successfully' : 'failed after retries'}`);
+                } else {
+                    console.error(`Email to ${recipient} failed with error:`, result.reason);
+                }
+            });
+
             // Optionally, clean up memory
             delete callMemoryStore[CallSid];
             console.log("[confirm-appointment] Appointment created:", appointment);
-            return c.text(`
-                <Response>
-                    <Say>Your appointment has been confirmed. You will receive a confirmation email shortly. Thank you for using EquiHealth.</Say>
-                    <Hangup/>
-                </Response>
-            `);
+            return c.text(`<Response><Say>Your appointment has been confirmed. You will receive a confirmation email shortly. Thank you for using EquiHealth.</Say><Hangup/></Response>`);
         } catch (error: any) {
             console.error("[confirm-appointment] Error confirming appointment:", error);
-            return c.text(`
-                <Response>
-                    <Say>An error occurred while confirming your appointment. Please try again later.</Say>
-                    <Hangup/>
-                </Response>
-            `);
+            return c.text(`<Response><Say>An error occurred while confirming your appointment. Please try again later.</Say><Hangup/></Response>`);
         }
     } else {
         // Cancel
         delete callMemoryStore[CallSid];
         console.log("[confirm-appointment] Appointment cancelled for CallSid:", CallSid);
-        return c.text(`
-            <Response>
-                <Say>Appointment booking cancelled. Thank you for using EquiHealth.</Say>
-                <Hangup/>
-            </Response>
-        `);
+        return c.text(`<Response><Say>Appointment booking cancelled. Thank you for using EquiHealth.</Say><Hangup/></Response>`);
     }
 });
 
