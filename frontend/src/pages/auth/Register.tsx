@@ -14,7 +14,9 @@ const DEPARTMENTS = [
   "Neurology",
   "Orthopedics",
   "Gastroenterology",
-  "Endocrinology"
+  "Endocrinology",
+  "Dermatology",
+  "Pediatrics",
 ];
 
 export default function Register() {
