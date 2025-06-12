@@ -57,7 +57,9 @@ export default function Dashboard() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="w-full flex bg-muted rounded-full p-2 mb-6 gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-muted/60 scrollbar-track-transparent">
+        <TabsList
+          className="w-full flex bg-muted rounded-full p-2 mb-6 gap-2 md:overflow-x-visible md:scrollbar-none overflow-x-auto scrollbar-thin scrollbar-thumb-muted/60 scrollbar-track-transparent"
+        >
           <TabsTrigger value="overview" className="flex-1 min-w-[140px] px-4 py-2 md:py-3 rounded-full text-sm md:text-base font-semibold transition-colors shadow-sm data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105">
             Overview
           </TabsTrigger>

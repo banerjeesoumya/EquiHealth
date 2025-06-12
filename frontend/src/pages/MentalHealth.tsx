@@ -51,51 +51,49 @@ const MentalHealth: React.FC = () => {
       widget = document.createElement('elevenlabs-convai');
       widget.setAttribute('agent-id', 'agent_01jx0mq5qgfhha8yjwrbxwj9y9');
       widget.style.position = 'fixed';
-      widget.style.bottom = '12px';
-      widget.style.right = '12px';
+      widget.style.bottom = '0px';
+      widget.style.right = '0px';
+      widget.style.left = 'auto';
+      widget.style.top = 'auto';
       widget.style.zIndex = '9999';
-      widget.style.width = window.innerWidth <= 768 ? '90vw' : '360px';
-      widget.style.height = window.innerWidth <= 768 ? '220px' : '480px';
-      widget.style.maxWidth = '95vw';
-      widget.style.maxHeight = window.innerWidth <= 768 ? '220px' : '70vh';
-      widget.style.borderRadius = window.innerWidth <= 768 ? '12px' : '16px';
+      widget.style.transition = 'width 0.2s, height 0.2s, right 0.2s, bottom 0.2s';
       widget.id = 'elevenlabs-convai-widget';
       document.body.appendChild(widget);
+      setWidgetResponsiveStyle();
     };
 
     // Responsive adjustments for mobile
-    const setWidgetMobileStyle = () => {
+    const setWidgetResponsiveStyle = () => {
       const w = document.getElementById('elevenlabs-convai-widget');
       if (!w) return;
+      w.style.setProperty('position', 'fixed', 'important');
+      w.style.setProperty('bottom', '0px', 'important');
+      w.style.setProperty('right', '0px', 'important');
+      w.style.setProperty('left', 'auto', 'important');
+      w.style.setProperty('top', 'auto', 'important');
+      w.style.setProperty('z-index', '9999', 'important');
       if (window.innerWidth <= 768) {
-        w.style.width = '90vw';
-        w.style.height = '220px';
-        w.style.right = '12px';
-        w.style.left = 'auto';
-        w.style.bottom = '12px';
-        w.style.borderRadius = '12px';
-        w.style.maxWidth = '95vw';
-        w.style.maxHeight = '220px';
+        w.style.setProperty('width', '90vw', 'important');
+        w.style.setProperty('height', '220px', 'important');
+        w.style.setProperty('border-radius', '12px', 'important');
+        w.style.setProperty('max-width', '95vw', 'important');
+        w.style.setProperty('max-height', '220px', 'important');
       } else {
-        w.style.width = '360px';
-        w.style.height = '480px';
-        w.style.right = '16px';
-        w.style.left = 'auto';
-        w.style.bottom = '16px';
-        w.style.borderRadius = '16px';
-        w.style.maxWidth = '90vw';
-        w.style.maxHeight = '70vh';
+        w.style.setProperty('width', '360px', 'important');
+        w.style.setProperty('height', '480px', 'important');
+        w.style.setProperty('border-radius', '16px', 'important');
+        w.style.setProperty('max-width', '90vw', 'important');
+        w.style.setProperty('max-height', '70vh', 'important');
       }
     };
 
     createWidget();
-    setTimeout(setWidgetMobileStyle, 100);
-    window.addEventListener('resize', setWidgetMobileStyle);
+    window.addEventListener('resize', setWidgetResponsiveStyle);
 
     return () => {
       if (widget && widget.parentNode) widget.parentNode.removeChild(widget);
       document.body.removeChild(script);
-      window.removeEventListener('resize', setWidgetMobileStyle);
+      window.removeEventListener('resize', setWidgetResponsiveStyle);
     };
   }, []);
 
