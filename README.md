@@ -4,50 +4,162 @@
 
 EquiHealth is a comprehensive healthcare platform that combines modern web technologies with machine learning to predict and manage diseases. The system serves different user roles including patients, doctors, and administrators, providing tailored experiences for each.
 
+## MVP Screenshots
+
+### Landing Page
+![Landing Page](./images/landing-page.png)
+
+### User Dashboard
+![User Dashboard](./images/user-dashboard.png)
+
+### Doctor Dashboard
+![Doctor Dashboard](./images/doctor-dashboard.png)
+
+### Appointment Booking Interface
+![Disease Prediction](./images/book-appointment.png)
+
+## Architecture Diagram
+
+![Architecture Diagram](./images/architecture-diagram.png)
+
+## Process Flow Diagram
+
+![Process Flow](./images/process-flow.png)
+
 ## Features
 
-- **User Authentication and Role Management**: Secure login and registration system with role-based access control.
-- **Disease Prediction**: Advanced machine learning models to predict diseases based on symptoms.
-- **Dashboard for Patients**: View health information, track predictions, and connect with doctors.
-- **Dashboard for Doctors**: Manage patients, review cases, and provide medical advice.
-- **Dashboard for Administrators**: Oversee platform activities and user management.
-- **Responsive Design**: Fully responsive UI that works on all devices.
+### Technical Features
 
-## Tech Stack
+| Category | Feature | Description |
+|----------|---------|-------------|
+| Frontend | React + TypeScript | Modern, type-safe UI development |
+| | Vite | Fast development and build tooling |
+| | Tailwind CSS | Utility-first CSS framework |
+| | React Router | Client-side routing |
+| | Context API | State management |
+| Backend | Hono.js | Fast, lightweight web framework |
+| | Prisma ORM | Type-safe database operations |
+| | JWT Auth | Secure authentication |
+| | REST API | Standard API architecture |
+| ML Module | Python | Core ML implementation |
+| | Jupyter | Model development environment |
+| | Disease Prediction | ML-based symptom analysis |
 
-### Frontend
-- React with TypeScript
-- Vite for fast development
-- React Router for navigation
-- Tailwind CSS for styling
-- Context API for state management
+### User Features
 
-### Backend
-- Hono.js framework for API development
-- Prisma ORM for database interactions
-- JWT for authentication
-- REST API architecture
+- **User Authentication and Role Management**
+  - Secure login and registration
+  - Role-based access control
+  - JWT-based session management
 
-### Prediction Module
-- Python-based machine learning models
-- Jupyter Notebooks for model development
-- Disease prediction algorithms
+- **Disease Prediction**
+  - ML-based symptom analysis
+  - Real-time predictions
+  - Historical prediction tracking
+
+- **Patient Dashboard**
+  - Health information tracking
+  - Appointment management
+  - Doctor communication
+  - Prediction history
+
+- **Doctor Dashboard**
+  - Patient management
+  - Case review system
+  - Appointment scheduling
+  - Medical advice provision
+
+- **Admin Dashboard**
+  - User management
+  - System monitoring
+  - Content management
+  - Analytics dashboard
 
 ## Project Structure
 
 ```
 EquiHealth/
-├── frontend/         
-├── backend/          
-└── Prediction/       
+├── frontend/                 # React + TypeScript frontend
+│   ├── src/
+│   │   ├── components/      # Reusable UI components
+│   │   ├── pages/          # Page components
+│   │   ├── context/        # React context providers
+│   │   ├── hooks/          # Custom React hooks
+│   │   ├── utils/          # Utility functions
+│   │   └── types/          # TypeScript type definitions
+│   ├── public/             # Static assets
+│   └── tests/              # Frontend tests
+│
+├── backend/                 # Hono.js backend
+│   ├── src/
+│   │   ├── routes/         # API route handlers
+│   │   ├── middleware/     # Custom middleware
+│   │   ├── utils/          # Utility functions
+│   │   └── types/          # TypeScript type definitions
+│   ├── prisma/             # Database schema and migrations
+│   └── tests/              # Backend tests
+│
+└── Prediction/             # ML module
+    ├── models/             # Trained ML models
+    ├── notebooks/          # Jupyter notebooks
+    └── scripts/            # Python scripts
 ```
+
+## Project Index
+
+<details>
+<summary>Frontend Files</summary>
+
+- `src/components/` - Reusable UI components
+  - `Layout.tsx` - Main application layout
+  - `Header.tsx` - Navigation header
+  - `Footer.tsx` - Page footer
+  - `dashboard/` - Dashboard-specific components
+  - `auth/` - Authentication components
+
+- `src/pages/` - Page components
+  - `Landing.tsx` - Homepage
+  - `Dashboard.tsx` - User dashboard
+  - `DoctorDashboard.tsx` - Doctor interface
+  - `AdminDashboard.tsx` - Admin interface
+
+- `src/context/` - React context providers
+  - `AuthContext.tsx` - Authentication state
+  - `ThemeContext.tsx` - UI theme management
+
+</details>
+
+<details>
+<summary>Backend Files</summary>
+
+- `src/routes/` - API endpoints
+  - `user.ts` - User-related endpoints
+  - `doctor.ts` - Doctor-related endpoints
+  - `admin.ts` - Admin-related endpoints
+
+- `prisma/` - Database
+  - `schema.prisma` - Database schema
+  - `migrations/` - Database migrations
+
+</details>
+
+<details>
+<summary>ML Module Files</summary>
+
+- `DiseasePrediction/` - ML implementation
+  - `app.py` - Flask API for predictions
+  - `model.py` - ML model implementation
+  - `utils.py` - Helper functions
+
+</details>
 
 ## Getting Started
 
 ### Prerequisites
 - Node.js (v16+)
 - npm or yarn
-- Python 3.8+ (for prediction module)
+- Python 3.8+
+- PostgreSQL
 
 ### Frontend Setup
 ```bash
@@ -63,39 +175,39 @@ npm install
 npm run dev
 ```
 
-### Prediction Module Setup
+### ML Module Setup
 ```bash
 cd Prediction
-# Follow instructions in the DiseasePrediction notebook
+pip install -r requirements.txt
+python app.py
 ```
 
-## API Endpoints
+## API Documentation
 
-The API is structured around three main user roles:
+### Authentication Endpoints
+- `POST /api/v1/auth/register` - User registration
+- `POST /api/v1/auth/login` - User login
+- `POST /api/v1/auth/logout` - User logout
 
-- `/api/v1/user` - Endpoints for patient users
-- `/api/v1/doctor` - Endpoints for medical professionals
-- `/api/v1/admin` - Endpoints for administrative tasks
+### User Endpoints
+- `GET /api/v1/user/profile` - Get user profile
+- `PUT /api/v1/user/profile` - Update user profile
+- `GET /api/v1/user/appointments` - Get user appointments
 
-## Deployment
+### Doctor Endpoints
+- `GET /api/v1/doctor/patients` - Get doctor's patients
+- `POST /api/v1/doctor/appointments` - Create appointment
+- `PUT /api/v1/doctor/appointments/:id` - Update appointment
 
-### Frontend
-```bash
-cd frontend
-npm run build
-```
-
-### Backend
-```bash
-cd backend
-npm run deploy
-```
+### Admin Endpoints
+- `GET /api/v1/admin/users` - Get all users
+- `PUT /api/v1/admin/users/:id` - Update user
+- `DELETE /api/v1/admin/users/:id` - Delete user
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgements
+## Contact
 
-- This project was developed to improve healthcare access and early disease detection
-- Thanks to all contributors
+- Email: equihealthh@gmail.com
