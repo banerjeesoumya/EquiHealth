@@ -42,7 +42,8 @@ export default function BookAppointment() {
     "Neurology",
     "Orthopedics",
     "Gastroenterology",
-    "Endocrinology"
+    "Endocrinology",
+    "Dermatology",
   ];
 
   const fetchDoctorsBySpecialization = async (specialization: string) => {
