@@ -3,8 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Button } from '../ui/button';
 import { Calendar } from 'lucide-react';
 import axios from '../../lib/axios';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 
-// Add a simple modal component
 function Modal({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
   if (!open) return null;
   return (
@@ -33,6 +33,7 @@ export default function Appointments() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Appointment | null>(null);
+  const [activeTab, setActiveTab] = useState<'upcoming' | 'previous'>('upcoming');
 
   const fetchAppointments = async () => {
     try {
@@ -52,9 +53,9 @@ export default function Appointments() {
   if (loading) return <div>Loading appointments...</div>;
   if (error) return <div className="text-red-500">{error}</div>;
 
-  // Only show upcoming appointments
   const today = new Date();
   const upcoming = appointments.filter(a => new Date(a.date) >= new Date(today.toDateString()));
+  const previous = appointments.filter(a => new Date(a.date) < new Date(today.toDateString()));
 
   return (
     <Card>
@@ -68,41 +69,79 @@ export default function Appointments() {
         </Button>
       </CardHeader>
       <CardContent>
-        {upcoming.length > 0 ? (
-          <div className="space-y-4">
-            {upcoming.map((appointment) => (
-              <div
-                key={appointment.id}
-                className="flex flex-col p-4 border rounded-lg"
-              >
-                <div className="font-semibold text-lg mb-1">{appointment.doctorName}</div>
-                <div className="flex items-center text-sm text-muted-foreground mb-2">
-                  <Calendar className="mr-1 h-4 w-4" />
-                  {appointment.date} at {appointment.slot}
-                </div>
-                <div className="flex justify-end">
-                  <Button 
-                    variant={
-                      appointment.status === 'PENDING' || appointment.status === 'CONFIRMED' 
-                        ? 'default' 
-                        : 'secondary'
-                    }
-                    onClick={() => setSelected(appointment)}
+        <Tabs value={activeTab} onValueChange={tab => setActiveTab(tab as 'upcoming' | 'previous')}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+            <TabsTrigger value="previous">Previous</TabsTrigger>
+          </TabsList>
+          <TabsContent value="upcoming">
+            {upcoming.length > 0 ? (
+              <div className="space-y-4">
+                {upcoming.map((appointment) => (
+                  <div
+                    key={appointment.id}
+                    className="flex flex-col p-4 border rounded-lg"
                   >
-                    View Summary
-                  </Button>
-                </div>
+                    <div className="font-semibold text-lg mb-1">{appointment.doctorName}</div>
+                    <div className="flex items-center text-sm text-muted-foreground mb-2">
+                      <Calendar className="mr-1 h-4 w-4" />
+                      {appointment.date} at {appointment.slot}
+                    </div>
+                    <div className="flex justify-end">
+                      <Button 
+                        variant={
+                          appointment.status === 'PENDING' || appointment.status === 'CONFIRMED' 
+                            ? 'default' 
+                            : 'secondary'
+                        }
+                        onClick={() => setSelected(appointment)}
+                      >
+                        View Summary
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">You don't have any upcoming appointments</p>
-            <Button className="mt-4">
-              Book Your First Appointment
-            </Button>
-          </div>
-        )}
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">You don't have any upcoming appointments</p>
+                <Button className="mt-4">
+                  Book Your First Appointment
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+          <TabsContent value="previous">
+            {previous.length > 0 ? (
+              <div className="space-y-4">
+                {previous.map((appointment) => (
+                  <div
+                    key={appointment.id}
+                    className="flex flex-col p-4 border rounded-lg"
+                  >
+                    <div className="font-semibold text-lg mb-1">{appointment.doctorName}</div>
+                    <div className="flex items-center text-sm text-muted-foreground mb-2">
+                      <Calendar className="mr-1 h-4 w-4" />
+                      {appointment.date} at {appointment.slot}
+                    </div>
+                    <div className="flex justify-end">
+                      <Button 
+                        variant="secondary"
+                        onClick={() => setSelected(appointment)}
+                      >
+                        View Summary
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No previous appointments found</p>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </CardContent>
       <Modal open={!!selected} onClose={() => setSelected(null)}>
         {selected && (
